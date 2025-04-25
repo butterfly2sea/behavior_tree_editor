@@ -390,45 +390,6 @@ function onCanvasMouseMove(e) {
         updateSelectionBox();
     }
 
-    // If dragging nodes
-    if (state.dragging.active) {
-        const deltaX = x - state.dragging.currentX;
-        const deltaY = y - state.dragging.currentY;
-
-        state.dragging.currentX = x;
-        state.dragging.currentY = y;
-
-        // Check if we should show alignment guides
-        const alignmentInfo = calculateAlignment(state.dragging.nodes);
-        updateAlignmentGuides(alignmentInfo);
-
-        // Move all selected nodes
-        state.dragging.nodes.forEach(nodeInfo => {
-            const node = state.nodes.find(n => n.id === nodeInfo.id);
-            if (node) {
-                // Apply movement with snapping if enabled
-                let newX = node.x + deltaX;
-                let newY = node.y + deltaY;
-
-                // Check if we should snap to an alignment guide
-                if (alignmentInfo.horizontal.active) {
-                    newY = alignmentInfo.horizontal.position - nodeInfo.offsetY;
-                }
-                if (alignmentInfo.vertical.active) {
-                    newX = alignmentInfo.vertical.position - nodeInfo.offsetX;
-                }
-
-                // Apply grid snapping if enabled
-                node.x = state.grid.snap ? snapToGrid(newX) : newX;
-                node.y = state.grid.snap ? snapToGrid(newY) : newY;
-            }
-        });
-
-        // Update the rendering
-        renderNodes();
-        renderConnections();
-    }
-
     // If there's a pending connection being drawn
     if (state.pendingConnection) {
         drawPendingConnection();
@@ -448,13 +409,18 @@ function onCanvasMouseUp(e) {
         }
     }
 
-    // If dragging nodes, complete the drag
+    // If dragging nodes, complete the drag operation properly
     if (state.dragging.active) {
         state.dragging.active = false;
         state.dragging.nodes = [];
 
         // Clear any alignment guides
         clearAlignmentGuides();
+
+        // Remove the document-level mouse move and up listeners to ensure
+        // we don't continue tracking mouse movements
+        document.removeEventListener('mousemove', onDocumentMouseMove);
+        document.removeEventListener('mouseup', onDocumentMouseUp);
     }
 
     // Update panel for selection
@@ -560,6 +526,77 @@ function startNodeDrag(x, y) {
             offsetY: node.y - y
         };
     });
+
+    // Add document-level event listeners to ensure we catch mouse
+    // events even if they go outside the canvas
+    document.addEventListener('mousemove', onDocumentMouseMove);
+    document.addEventListener('mouseup', onDocumentMouseUp);
+}
+
+function onDocumentMouseMove(e) {
+    if (!state.dragging.active) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Update mouse position
+    state.mousePosition.x = x;
+    state.mousePosition.y = y;
+
+    const deltaX = x - state.dragging.currentX;
+    const deltaY = y - state.dragging.currentY;
+
+    state.dragging.currentX = x;
+    state.dragging.currentY = y;
+
+    // Check if we should show alignment guides
+    const alignmentInfo = calculateAlignment(state.dragging.nodes);
+    updateAlignmentGuides(alignmentInfo);
+
+    // Move all selected nodes
+    state.dragging.nodes.forEach(nodeInfo => {
+        const node = state.nodes.find(n => n.id === nodeInfo.id);
+        if (node) {
+            // Apply movement with snapping if enabled
+            let newX = node.x + deltaX;
+            let newY = node.y + deltaY;
+
+            // Check if we should snap to an alignment guide
+            if (alignmentInfo.horizontal.active) {
+                newY = alignmentInfo.horizontal.position - nodeInfo.offsetY;
+            }
+            if (alignmentInfo.vertical.active) {
+                newX = alignmentInfo.vertical.position - nodeInfo.offsetX;
+            }
+
+            // Apply grid snapping if enabled
+            node.x = state.grid.snap ? snapToGrid(newX) : newX;
+            node.y = state.grid.snap ? snapToGrid(newY) : newY;
+        }
+    });
+
+    // Update the rendering
+    renderNodes();
+    renderConnections();
+}
+
+function onDocumentMouseUp(e) {
+    if (state.dragging.active) {
+        state.dragging.active = false;
+        state.dragging.nodes = [];
+
+        // Clear any alignment guides
+        clearAlignmentGuides();
+
+        // Remove event listeners
+        document.removeEventListener('mousemove', onDocumentMouseMove);
+        document.removeEventListener('mouseup', onDocumentMouseUp);
+
+        // Update rendering
+        renderNodes();
+        renderConnections();
+    }
 }
 
 // Alignment functions
@@ -991,7 +1028,13 @@ function hideNodeTypeContextMenu() {
 }
 
 // Connection handling (two-click system)
-function handlePortClick(nodeId, portType) {
+function handlePortClick(nodeId, portType, event) {
+    // First check if the port is disabled by looking at the element's class
+    if (event.target.classList.contains('disabled')) {
+        // Do nothing if the port is disabled
+        return;
+    }
+
     const node = state.nodes.find(n => n.id === nodeId);
     if (!node) return;
 
@@ -1073,6 +1116,9 @@ function handlePortClick(nodeId, portType) {
         // Reset pending connection state
         resetPendingConnection();
         renderConnections();
+
+        // Update ports visibility after new connection
+        renderNodes();
     }
 }
 
@@ -1276,7 +1322,7 @@ function renderNodes() {
         parentPortEl.className = 'port port-parent';
         parentPortEl.addEventListener('click', (e) => {
             e.stopPropagation();
-            handlePortClick(node.id, 'parent');
+            handlePortClick(node.id, 'parent', e);
         });
         portsEl.appendChild(parentPortEl);
 
@@ -1284,7 +1330,7 @@ function renderNodes() {
         childPortEl.className = 'port port-child';
         childPortEl.addEventListener('click', (e) => {
             e.stopPropagation();
-            handlePortClick(node.id, 'child');
+            handlePortClick(node.id, 'child', e);
         });
         portsEl.appendChild(childPortEl);
 
@@ -1483,6 +1529,36 @@ function toggleDockPanel() {
     }
 }
 
+// Root node validation
+function countRootNodes() {
+    // Root nodes are nodes that have no parent (no incoming connections)
+    const targetIds = state.connections.map(c => c.target);
+    const rootNodes = state.nodes.filter(node => !targetIds.includes(node.id));
+
+    return {
+        count: rootNodes.length,
+        rootNodes: rootNodes
+    };
+}
+
+function validateRootNodes() {
+    const result = countRootNodes();
+
+    if (result.count === 0) {
+        return {
+            isValid: false,
+            message: "Error: No root node found. Every behavior tree must have exactly one root node."
+        };
+    } else if (result.count > 1) {
+        return {
+            isValid: false,
+            message: `Error: Multiple root nodes found (${result.count}). A behavior tree must have exactly one root node.`
+        };
+    }
+
+    return { isValid: true, message: "" };
+}
+
 // Server-Sent Events for Monitoring
 function startMonitoring() {
     if (state.monitor.active) return;
@@ -1597,6 +1673,13 @@ function processMonitoringData(data) {
 
 // File operations
 function saveTree() {
+    // Validate the tree has exactly one root node
+    const validation = validateRootNodes();
+    if (!validation.isValid) {
+        alert(validation.message);
+        return;
+    }
+
     const treeData = {
         nodes: state.nodes,
         connections: state.connections,
@@ -1702,22 +1785,28 @@ function clearTree() {
 
 // XML Export
 function exportXml() {
+    // Validate the tree has exactly one root node
+    const validation = validateRootNodes();
+    if (!validation.isValid) {
+        alert(validation.message);
+        return;
+    }
+
     const xmlStr = generateBehaviorTreeXml();
     xmlContent.textContent = xmlStr;
     xmlModal.style.display = 'block';
 }
 
 function buildTreeHierarchy() {
-    // Find root nodes (not targeted by any connection)
-    const targetIds = state.connections.map(c => c.target);
-    const possibleRoots = state.nodes.filter(node => !targetIds.includes(node.id));
+    // Use our root node validation
+    const rootNodeResult = countRootNodes();
 
-    if (possibleRoots.length === 0) {
+    if (rootNodeResult.count === 0) {
         return null;
     }
 
-    // Select the first root as the main root (could be improved)
-    const root = possibleRoots[0];
+    // Select the first root as the main root
+    const root = rootNodeResult.rootNodes[0];
 
     // Recursively build the tree
     return buildNodeHierarchy(root.id);
