@@ -509,7 +509,17 @@ export function initDockPanel(elements, state, renderer) {
         logger.info(`Created custom node type: ${name} (${category})`);
     }
 
-    /**
+    // Return public API
+    return {
+        updateNodeTreeView,
+        toggleDockPanel,
+        startMonitoring,
+        stopMonitoring,
+        validateNodeProperty
+    };
+}
+
+   /**
  * Validate a node property value based on its type and constraints
  * @param {string|number|boolean} value - Property value to validate
  * @param {string} type - Property type (string, number, boolean, integer, etc)
@@ -651,14 +661,4 @@ export function validateNodeProperty(value, type, constraints = {}) {
             // For unknown types, assume it's valid
             return { valid: true, message: '' };
     }
-}
-
-    // Return public API
-    return {
-        updateNodeTreeView,
-        toggleDockPanel,
-        startMonitoring,
-        stopMonitoring,
-        validateNodeProperty
-    };
 }
