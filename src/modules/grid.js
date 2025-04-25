@@ -3,8 +3,8 @@
  * Manages grid rendering and grid-related settings
  */
 
-import { editorEvents, EDITOR_EVENTS } from './events.js';
-import { logger } from '../index.js';
+import {editorEvents, EDITOR_EVENTS} from './events.js';
+import {logger} from '../index.js';
 
 export function initGrid(elements, state, renderer) {
     const stateManager = state;
@@ -18,16 +18,15 @@ export function initGrid(elements, state, renderer) {
      * Toggle grid visibility
      */
     function toggleGrid() {
-        const grid = stateManager.getGrid();
-
+        const currentState = stateManager.getGrid().enabled;
         stateManager.updateGridSettings({
-            enabled: !grid.enabled
+            enabled: !currentState
         });
 
         // Update UI
         const toggleBtn = document.getElementById('toggle-grid-btn');
         if (toggleBtn) {
-            toggleBtn.classList.toggle('active', !grid.enabled);
+            toggleBtn.classList.toggle('active', !currentState);
         }
 
         // Request render update
@@ -38,16 +37,15 @@ export function initGrid(elements, state, renderer) {
      * Toggle grid snapping
      */
     function toggleSnap() {
-        const grid = stateManager.getGrid();
-
+        const currentState = stateManager.getGrid().snap;
         stateManager.updateGridSettings({
-            snap: !grid.snap
+            snap: !currentState
         });
 
         // Update UI
         const toggleBtn = document.getElementById('toggle-snap-btn');
         if (toggleBtn) {
-            toggleBtn.classList.toggle('active', !grid.snap);
+            toggleBtn.classList.toggle('active', !currentState);
         }
     }
 
@@ -61,7 +59,7 @@ export function initGrid(elements, state, renderer) {
             return;
         }
 
-        stateManager.updateGridSettings({ size });
+        stateManager.updateGridSettings({size});
 
         // Request render update
         renderer.requestRender(true);
@@ -71,7 +69,7 @@ export function initGrid(elements, state, renderer) {
      * Render the grid
      */
     function renderGrid() {
-        const { gridCanvas } = elements;
+        const {gridCanvas} = elements;
         const grid = stateManager.getGrid();
         const viewport = stateManager.getViewport();
 
