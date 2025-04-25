@@ -3,9 +3,9 @@
  * Handles saving, loading, and exporting behavior trees
  */
 
-import { editorEvents, EDITOR_EVENTS } from './events.js';
-import { logger } from '../index.js';
-import { showErrorToUser } from '../index.js';
+import {editorEvents, EDITOR_EVENTS} from './events.js';
+import {logger} from '../index.js';
+import {showErrorToUser} from '../index.js';
 
 export function initSerialization(elements, state) {
     const stateManager = state;
@@ -39,7 +39,7 @@ export function initSerialization(elements, state) {
             };
 
             // Create a Blob from the JSON data
-            const blob = new Blob([JSON.stringify(treeData, null, 2)], { type: 'application/json' });
+            const blob = new Blob([JSON.stringify(treeData, null, 2)], {type: 'application/json'});
             const url = URL.createObjectURL(blob);
 
             // Create a download link
@@ -173,7 +173,7 @@ export function initSerialization(elements, state) {
             const xmlStr = generateBehaviorTreeXml();
 
             // Show in XML modal
-            const { xmlModal, xmlContent } = elements;
+            const {xmlModal, xmlContent} = elements;
 
             if (xmlContent) {
                 xmlContent.textContent = xmlStr;
@@ -194,7 +194,7 @@ export function initSerialization(elements, state) {
      * Copy XML content to clipboard
      */
     function copyXmlToClipboard() {
-        const { xmlContent } = elements;
+        const {xmlContent} = elements;
 
         if (!xmlContent) return;
 
@@ -249,7 +249,7 @@ export function initSerialization(elements, state) {
             };
         }
 
-        return { isValid: true, message: "" };
+        return {isValid: true, message: ""};
     }
 
     /**
@@ -454,28 +454,8 @@ export function initSerialization(elements, state) {
         editorEvents.on(EDITOR_EVENTS.CLEAR_REQUESTED, clearTree);
 
         // Add buttons event listeners
-        const saveBtn = document.getElementById('save-btn');
-        const loadBtn = document.getElementById('load-btn');
-        const clearBtn = document.getElementById('clear-btn');
-        const exportXmlBtn = document.getElementById('export-xml-btn');
         const copyXmlBtn = document.getElementById('copy-xml-btn');
         const closeXmlModal = document.getElementById('close-xml-modal');
-
-        if (saveBtn) {
-            saveBtn.addEventListener('click', saveTree);
-        }
-
-        if (loadBtn) {
-            loadBtn.addEventListener('click', loadTree);
-        }
-
-        if (clearBtn) {
-            clearBtn.addEventListener('click', clearTree);
-        }
-
-        if (exportXmlBtn) {
-            exportXmlBtn.addEventListener('click', exportXml);
-        }
 
         if (copyXmlBtn) {
             copyXmlBtn.addEventListener('click', copyXmlToClipboard);
@@ -483,7 +463,7 @@ export function initSerialization(elements, state) {
 
         if (closeXmlModal) {
             closeXmlModal.addEventListener('click', () => {
-                const { xmlModal } = elements;
+                const {xmlModal} = elements;
                 if (xmlModal) {
                     xmlModal.style.display = 'none';
                 }
@@ -492,7 +472,7 @@ export function initSerialization(elements, state) {
 
         // Close modal when clicking outside
         window.addEventListener('click', (e) => {
-            const { xmlModal } = elements;
+            const {xmlModal} = elements;
             if (xmlModal && e.target === xmlModal) {
                 xmlModal.style.display = 'none';
             }
