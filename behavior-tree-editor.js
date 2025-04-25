@@ -508,10 +508,6 @@ function selectAllNodes() {
 
 // Dragging multiple nodes
 function startNodeDrag(x, y) {
-    // 先移除可能存在的事件监听器，防止重复添加
-    document.removeEventListener('mousemove', onDocumentMouseMove);
-    document.removeEventListener('mouseup', onDocumentMouseUp);
-
     state.dragging.active = true;
     state.dragging.startX = x;
     state.dragging.startY = y;
