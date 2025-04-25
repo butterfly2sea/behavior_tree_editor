@@ -77,6 +77,18 @@ body {
     color: white;
 }
 
+.toolbar-group.layout-controls {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+#layout-type {
+    padding: 5px;
+    border-radius: 3px;
+    border: 1px solid #ddd;
+}
+
 /* Main container */
 .main-container {
     display: flex;
@@ -93,6 +105,7 @@ body {
     display: flex;
     flex-direction: column;
     transition: width 0.3s ease;
+    z-index: 30;
 }
 
 .dock-panel.collapsed {
@@ -300,11 +313,21 @@ body {
     position: relative;
 }
 
-.canvas {
-    flex: 1;
+.canvas-container {
     position: relative;
+    flex: 1;
+    overflow: hidden;
     background: #fafafa;
-    overflow: auto;
+}
+
+.canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transform-origin: 0 0;
+    will-change: transform;
 }
 
 .grid-canvas {
@@ -340,6 +363,53 @@ body {
     cursor: pointer;
 }
 
+/* Zoom controls */
+.zoom-controls {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    display: flex;
+    flex-direction: column;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    z-index: 25;
+}
+
+.zoom-button {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    border: none;
+    border-bottom: 1px solid #ddd;
+    cursor: pointer;
+}
+
+.zoom-button:last-child {
+    border-bottom: none;
+}
+
+/* Minimap */
+.minimap-container {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 150px;
+    height: 150px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid #ccc;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    z-index: 25;
+}
+
+.minimap {
+    width: 100%;
+    height: 100%;
+}
+
 /* Node styles */
 .tree-node {
     position: absolute;
@@ -353,6 +423,7 @@ body {
     cursor: move;
     user-select: none;
     z-index: 10;
+    will-change: transform;
 }
 
 .tree-node.selected {
@@ -495,8 +566,8 @@ body {
     background: #f5f5f5;
     border-left: 1px solid #ddd;
     overflow-y: auto;
-    z-index: 20; /* 增加z-index确保高于网格层 */
-    position: relative; /* 确保z-index生效 */
+    z-index: 20;
+    position: relative;
 }
 
 .properties-panel h3 {
@@ -652,6 +723,37 @@ body {
     background-color: #f5f5f5;
 }
 
+/* Error notification */
+.error-notification {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+    max-width: 400px;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.error-icon {
+    margin-right: 10px;
+}
+
+.error-message {
+    flex: 1;
+}
+
+.error-close {
+    cursor: pointer;
+    font-size: 18px;
+    margin-left: 10px;
+}
+
 /* Create Node Modal */
 #create-node-modal .modal-content {
     max-width: 500px;
@@ -790,4 +892,8 @@ body {
 
 .fa-grid {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 448 512'%3E%3Cpath d='M176 0h-80v80h80V0zm96 0h-80v80h80V0zM176 96h-80v80h80V96zm96 0h-80v80h80V96zM176 192h-80v80h80v-80zm96 0h-80v80h80v-80zM368 0h-80v80h80V0zm0 96h-80v80h80V96zm0 96h-80v80h80v-80zM368 288h-80v80h80v-80zm-96 0h-80v80h80v-80zm-96 0h-80v80h80v-80zM80 0H0v80h80V0zm0 96H0v80h80V96zm0 96H0v80h80v-80zm0 96H0v80h80v-80zm192 96h-80v80h80v-80zm96 0h-80v80h80v-80zm96 0h-80v80h80v-80zM0 384h80v128H0V384zm96 0h80v128H96V384zm96 0h80v128h-80V384zm96 0h80v128h-80V384zm96 0h80v128h-80V384z'/%3E%3C/svg%3E");
+}
+
+.fa-sitemap {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 512'%3E%3Cpath d='M128 352H32c-17.67 0-32 14.33-32 32v96c0 17.67 14.33 32 32 32h96c17.67 0 32-14.33 32-32v-96c0-17.67-14.33-32-32-32zm-24-80h192v48h48v-48h192v48h48v-57.59c0-21.17-17.23-38.41-38.41-38.41H344v-64h40c17.67 0 32-14.33 32-32V32c0-17.67-14.33-32-32-32H256c-17.67 0-32 14.33-32 32v96c0 17.67 14.33 32 32 32h40v64H94.41C73.23 224 56 241.23 56 262.41V320h48v-48zm264 80h-96c-17.67 0-32 14.33-32 32v96c0 17.67 14.33 32 32 32h96c17.67 0 32-14.33 32-32v-96c0-17.67-14.33-32-32-32zm240 0h-96c-17.67 0-32 14.33-32 32v96c0 17.67 14.33 32 32 32h96c17.67 0 32-14.33 32-32v-96c0-17.67-14.33-32-32-32z'/%3E%3C/svg%3E");
 }
