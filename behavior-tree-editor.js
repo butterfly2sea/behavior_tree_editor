@@ -397,28 +397,25 @@ function onCanvasMouseMove(e) {
 }
 
 function onCanvasMouseUp(e) {
-    // 处理选择框
+    // 如果绘制选择框，完成它
     if (state.selectionBox.active) {
         state.selectionBox.active = false;
         selectNodesInBox();
 
-        // Remove the selection box element
+        // 移除选择框元素
         const selectionBoxEl = document.getElementById('selection-box');
         if (selectionBoxEl) {
             selectionBoxEl.remove();
         }
     }
 
-    // 触发文档级mouseup事件处理器以确保拖拽状态正确清理
+    // 确保在画布mouseup事件中也正确处理拖拽结束
     if (state.dragging.active) {
         // state.dragging.active = false;
         state.dragging.nodes = [];
-
-        // Clear any alignment guides
         clearAlignmentGuides();
 
-        // Remove the document-level mouse move and up listeners to ensure
-        // we don't continue tracking mouse movements
+        // 移除document级别的事件监听器
         document.removeEventListener('mousemove', onDocumentMouseMove);
         document.removeEventListener('mouseup', onDocumentMouseUp);
     }
@@ -517,7 +514,7 @@ function startNodeDrag(x, y) {
     state.dragging.currentX = x;
     state.dragging.currentY = y;
 
-    // Store the relative position of each selected node
+    // 存储每个选中节点的相对位置
     state.dragging.nodes = state.selectedNodes.map(nodeId => {
         const node = state.nodes.find(n => n.id === nodeId);
         return {
@@ -527,8 +524,7 @@ function startNodeDrag(x, y) {
         };
     });
 
-    // Add document-level event listeners to ensure we catch mouse
-    // events even if they go outside the canvas
+    // 添加document级别的事件监听器
     document.addEventListener('mousemove', onDocumentMouseMove);
     document.addEventListener('mouseup', onDocumentMouseUp);
 }
@@ -589,11 +585,11 @@ function onDocumentMouseUp(e) {
         // 清除对齐辅助线
         clearAlignmentGuides();
 
-        // 确保总是移除文档级事件监听器
+        // 移除事件监听器
         document.removeEventListener('mousemove', onDocumentMouseMove);
         document.removeEventListener('mouseup', onDocumentMouseUp);
 
-        // 更新渲染
+        // 确保渲染更新
         renderNodes();
         renderConnections();
     }
