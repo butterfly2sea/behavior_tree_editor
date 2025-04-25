@@ -12,6 +12,7 @@ export const editorEvents = new EventEmitter();
 // Define event types
 export const EDITOR_EVENTS = {
     // Node events
+    NODE_CREATION_REQUESTED: 'node:creation-requested',
     NODE_CREATED: 'node:created',
     NODE_UPDATED: 'node:updated',
     NODE_DELETED: 'node:deleted',
@@ -825,7 +826,7 @@ function handleCanvasDrop(e, elements, state, renderer) {
             : newNodeY;
 
         // Emit event to create node
-        editorEvents.emit(EDITOR_EVENTS.NODE_CREATED, {
+        editorEvents.emit(EDITOR_EVENTS.NODE_CREATION_REQUESTED, {
             type: nodeType,
             category: nodeCategory,
             x: snappedX,

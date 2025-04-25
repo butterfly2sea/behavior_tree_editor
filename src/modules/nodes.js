@@ -540,9 +540,14 @@ export function initNodes(elements, state, renderer) {
      */
     function setupEventListeners() {
         // Listen for node creation requests
-        editorEvents.on(EDITOR_EVENTS.NODE_CREATED, nodeData => {
-            if (typeof nodeData === 'object') {
-                createNode(nodeData.type, nodeData.category, nodeData.x, nodeData.y);
+        editorEvents.on(EDITOR_EVENTS.NODE_CREATION_REQUESTED, nodeData => {
+            const nodeId = createNode(nodeData.type, nodeData.category, nodeData.x, nodeData.y);
+            // Only emit NODE_CREATED after the node is actually created
+            if (nodeId) {
+                const node = stateManager.getNodes().find(n => n.id === nodeId);
+                if (node) {
+                    editorEvents.emit(EDITOR_EVENTS.NODE_CREATED, node);
+                }
             }
         });
 
