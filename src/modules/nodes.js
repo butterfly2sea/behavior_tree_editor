@@ -3,8 +3,9 @@
  * Manages node operations for the behavior tree editor
  */
 
-import { editorEvents, EDITOR_EVENTS } from './events.js';
-import { logger } from '../index.js';
+import {NODE_TYPES, getDefaultPropertiesForCategory, getDefaultConstraintsForCategory} from '../data/node-types.js';
+import {editorEvents, EDITOR_EVENTS} from './events.js';
+import {logger} from '../index.js';
 
 export function initNodes(elements, state, renderer) {
     const stateManager = state;
@@ -148,8 +149,8 @@ export function initNodes(elements, state, renderer) {
         }
 
         // Update node properties
-        const updatedProperties = { ...node.properties, ...properties };
-        stateManager.updateNode(nodeId, { properties: updatedProperties });
+        const updatedProperties = {...node.properties, ...properties};
+        stateManager.updateNode(nodeId, {properties: updatedProperties});
 
         // Request render update
         renderer.requestNodeUpdate(nodeId);
@@ -231,8 +232,8 @@ export function initNodes(elements, state, renderer) {
     function getNodeTypeDefinition(type, category) {
         // Check built-in types first (from the external node-types.js)
         // This requires that NODE_TYPES is defined globally
-        if (window.NODE_TYPES && window.NODE_TYPES[category]) {
-            const builtInType = window.NODE_TYPES[category].find(nt => nt.type === type);
+        if (NODE_TYPES && NODE_TYPES[category]) {
+            const builtInType = NODE_TYPES[category].find(nt => nt.type === type);
             if (builtInType) return builtInType;
         }
 
@@ -272,7 +273,7 @@ export function initNodes(elements, state, renderer) {
         const newNode = nodes.find(n => n.id === newId);
         stateManager.updateNode(newId, {
             name: `${originalNode.name} (copy)`,
-            properties: { ...originalNode.properties }
+            properties: {...originalNode.properties}
         });
 
         // Request render update
@@ -373,7 +374,7 @@ export function initNodes(elements, state, renderer) {
                 targetValue = Math.min(...nodes.map(node => node.x));
                 // Apply to all selected nodes
                 nodes.forEach(node => {
-                    stateManager.updateNode(node.id, { x: targetValue });
+                    stateManager.updateNode(node.id, {x: targetValue});
                 });
                 break;
 
@@ -382,7 +383,7 @@ export function initNodes(elements, state, renderer) {
                 targetValue = nodes.reduce((sum, node) => sum + (node.x + 75), 0) / nodes.length;
                 // Apply to all selected nodes
                 nodes.forEach(node => {
-                    stateManager.updateNode(node.id, { x: targetValue - 75 });
+                    stateManager.updateNode(node.id, {x: targetValue - 75});
                 });
                 break;
 
@@ -391,7 +392,7 @@ export function initNodes(elements, state, renderer) {
                 targetValue = Math.max(...nodes.map(node => node.x + 150));
                 // Apply to all selected nodes
                 nodes.forEach(node => {
-                    stateManager.updateNode(node.id, { x: targetValue - 150 });
+                    stateManager.updateNode(node.id, {x: targetValue - 150});
                 });
                 break;
 
@@ -400,7 +401,7 @@ export function initNodes(elements, state, renderer) {
                 targetValue = Math.min(...nodes.map(node => node.y));
                 // Apply to all selected nodes
                 nodes.forEach(node => {
-                    stateManager.updateNode(node.id, { y: targetValue });
+                    stateManager.updateNode(node.id, {y: targetValue});
                 });
                 break;
 
@@ -409,7 +410,7 @@ export function initNodes(elements, state, renderer) {
                 targetValue = nodes.reduce((sum, node) => sum + (node.y + 20), 0) / nodes.length;
                 // Apply to all selected nodes
                 nodes.forEach(node => {
-                    stateManager.updateNode(node.id, { y: targetValue - 20 });
+                    stateManager.updateNode(node.id, {y: targetValue - 20});
                 });
                 break;
 
@@ -418,7 +419,7 @@ export function initNodes(elements, state, renderer) {
                 targetValue = Math.max(...nodes.map(node => node.y + 40));
                 // Apply to all selected nodes
                 nodes.forEach(node => {
-                    stateManager.updateNode(node.id, { y: targetValue - 40 });
+                    stateManager.updateNode(node.id, {y: targetValue - 40});
                 });
                 break;
         }
@@ -430,7 +431,7 @@ export function initNodes(elements, state, renderer) {
                 const snappedX = Math.round(node.x / grid.size) * grid.size;
                 const snappedY = Math.round(node.y / grid.size) * grid.size;
 
-                stateManager.updateNode(node.id, { x: snappedX, y: snappedY });
+                stateManager.updateNode(node.id, {x: snappedX, y: snappedY});
             });
         }
 
@@ -475,7 +476,7 @@ export function initNodes(elements, state, renderer) {
             // Distribute nodes
             for (let i = 1; i < nodes.length - 1; i++) {
                 const targetX = minX + i * spacing;
-                stateManager.updateNode(nodes[i].id, { x: targetX });
+                stateManager.updateNode(nodes[i].id, {x: targetX});
             }
         } else if (distributeType === 'vertical') {
             // Sort nodes by y position
@@ -492,7 +493,7 @@ export function initNodes(elements, state, renderer) {
             // Distribute nodes
             for (let i = 1; i < nodes.length - 1; i++) {
                 const targetY = minY + i * spacing;
-                stateManager.updateNode(nodes[i].id, { y: targetY });
+                stateManager.updateNode(nodes[i].id, {y: targetY});
             }
         }
 
@@ -503,7 +504,7 @@ export function initNodes(elements, state, renderer) {
                 const snappedX = Math.round(node.x / grid.size) * grid.size;
                 const snappedY = Math.round(node.y / grid.size) * grid.size;
 
-                stateManager.updateNode(node.id, { x: snappedX, y: snappedY });
+                stateManager.updateNode(node.id, {x: snappedX, y: snappedY});
             });
         }
 

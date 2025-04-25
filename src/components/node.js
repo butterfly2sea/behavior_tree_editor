@@ -6,6 +6,7 @@
 import { editorEvents, EDITOR_EVENTS } from '../modules/events.js';
 import { logger } from '../index.js';
 import { worldToScreen, screenToWorld } from '../modules/renderer.js';
+import {NODE_TYPES, getDefaultPropertiesForCategory, getDefaultConstraintsForCategory} from '../data/node-types.js';
 
 export function initNodeComponent(elements, state, renderer) {
     const stateManager = state;
@@ -361,8 +362,8 @@ export function initNodeComponent(elements, state, renderer) {
      */
     function getNodeTypeDefinition(type, category) {
         // Check built-in types first (from the external node-types.js)
-        if (window.NODE_TYPES && window.NODE_TYPES[category]) {
-            const builtInType = window.NODE_TYPES[category].find(nt => nt.type === type);
+        if (NODE_TYPES && NODE_TYPES[category]) {
+            const builtInType = NODE_TYPES[category].find(nt => nt.type === type);
             if (builtInType) return builtInType;
         }
 

@@ -3,10 +3,11 @@
  * Manages the right panel for editing node properties
  */
 
-import { editorEvents, EDITOR_EVENTS } from '../modules/events.js';
-import { logger } from '../index.js';
-import { clearElement, escapeHtml } from '../utils/dom-utils.js';
-import { validateNodeProperty } from '../utils/validation.js';
+import {editorEvents, EDITOR_EVENTS} from '../modules/events.js';
+import {logger} from '../index.js';
+import {clearElement, escapeHtml} from '../utils/dom-utils.js';
+import {validateNodeProperty} from '../utils/validation.js';
+import {NODE_TYPES, getDefaultPropertiesForCategory, getDefaultConstraintsForCategory} from '../data/node-types.js';
 
 export function initPropertiesPanel(elements, state, renderer) {
     const stateManager = state;
@@ -20,7 +21,7 @@ export function initPropertiesPanel(elements, state, renderer) {
      * Update the properties panel based on selected nodes
      */
     function updatePropertiesPanel() {
-        const { propertiesPanel, propertiesContent } = elements;
+        const {propertiesPanel, propertiesContent} = elements;
 
         if (!propertiesPanel || !propertiesContent) {
             logger.warn('Properties panel elements not found');
@@ -52,7 +53,7 @@ export function initPropertiesPanel(elements, state, renderer) {
      * @param {string} nodeId - ID of the selected node
      */
     function renderSingleNodeProperties(nodeId) {
-        const { propertiesContent } = elements;
+        const {propertiesContent} = elements;
 
         const node = stateManager.getNodes().find(n => n.id === nodeId);
         if (!node) {
@@ -149,7 +150,7 @@ export function initPropertiesPanel(elements, state, renderer) {
      * @param {Array} nodeIds - Array of selected node IDs
      */
     function renderMultiNodeProperties(nodeIds) {
-        const { propertiesContent } = elements;
+        const {propertiesContent} = elements;
 
         // Build HTML content for multi-selection
         let html = `
@@ -215,7 +216,7 @@ export function initPropertiesPanel(elements, state, renderer) {
         const nameInput = document.getElementById('node-name');
         if (nameInput) {
             nameInput.addEventListener('change', e => {
-                updateNodeInfo(nodeId, { name: e.target.value });
+                updateNodeInfo(nodeId, {name: e.target.value});
             });
         }
 
@@ -336,7 +337,7 @@ export function initPropertiesPanel(elements, state, renderer) {
         stateManager.updateNode(nodeId, updates);
 
         // Notify about update
-        editorEvents.emit(EDITOR_EVENTS.NODE_UPDATED, { id: nodeId, ...updates });
+        editorEvents.emit(EDITOR_EVENTS.NODE_UPDATED, {id: nodeId, ...updates});
 
         // Update render
         renderer.requestNodeUpdate(nodeId);
@@ -383,15 +384,15 @@ export function initPropertiesPanel(elements, state, renderer) {
         if (!node) return;
 
         // Create copy of properties and update
-        const properties = { ...node.properties };
+        const properties = {...node.properties};
         properties[propName] = value;
 
-        stateManager.updateNode(nodeId, { properties });
+        stateManager.updateNode(nodeId, {properties});
 
         // Notify about update
         editorEvents.emit(EDITOR_EVENTS.NODE_UPDATED, {
             id: nodeId,
-            properties: { [propName]: value }
+            properties: {[propName]: value}
         });
     }
 
@@ -403,8 +404,8 @@ export function initPropertiesPanel(elements, state, renderer) {
      */
     function getNodeTypeDefinition(type, category) {
         // Check built-in types first (from the external node-types.js)
-        if (window.NODE_TYPES && window.NODE_TYPES[category]) {
-            const builtInType = window.NODE_TYPES[category].find(nt => nt.type === type);
+        if (NODE_TYPES && NODE_TYPES[category]) {
+            const builtInType = NODE_TYPES[category].find(nt => nt.type === type);
             if (builtInType) return builtInType;
         }
 

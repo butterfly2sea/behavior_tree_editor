@@ -3,9 +3,10 @@
  * Manages the left sidebar with node palette and monitoring controls
  */
 
-import { editorEvents, EDITOR_EVENTS } from '../modules/events.js';
-import { logger } from '../index.js';
-import { clearElement } from '../utils/dom-utils.js';
+import {NODE_TYPES, getDefaultPropertiesForCategory, getDefaultConstraintsForCategory} from '../data/node-types.js';
+import {editorEvents, EDITOR_EVENTS} from '../modules/events.js';
+import {logger} from '../index.js';
+import {clearElement} from '../utils/dom-utils.js';
 
 export function initDockPanel(elements, state, renderer) {
     const stateManager = state;
@@ -23,7 +24,7 @@ export function initDockPanel(elements, state, renderer) {
      * Initialize the node tree view with categories and node types
      */
     function initNodeTreeView() {
-        const { nodeTreeView } = elements;
+        const {nodeTreeView} = elements;
         if (!nodeTreeView) return;
 
         // Clear existing tree view
@@ -31,13 +32,13 @@ export function initDockPanel(elements, state, renderer) {
 
         // Get node types from the global NODE_TYPES object
         // This should be loaded from node-types.js
-        if (!window.NODE_TYPES) {
+        if (!NODE_TYPES) {
             logger.error('NODE_TYPES not found. Make sure node-types.js is loaded.');
             return;
         }
 
         // Create category elements
-        Object.keys(window.NODE_TYPES).forEach(category => {
+        Object.keys(NODE_TYPES).forEach(category => {
             createCategoryInTreeView(category, nodeTreeView);
         });
     }
@@ -94,8 +95,8 @@ export function initDockPanel(elements, state, renderer) {
         }
 
         // Add built-in node types to this category
-        if (window.NODE_TYPES[category]) {
-            window.NODE_TYPES[category].forEach(nodeType => {
+        if (NODE_TYPES[category]) {
+            NODE_TYPES[category].forEach(nodeType => {
                 createNodeItemElement(nodeType, category, itemsEl);
             });
         }
@@ -168,7 +169,7 @@ export function initDockPanel(elements, state, renderer) {
      * Initialize the monitor panel
      */
     function initMonitorPanel() {
-        const { sseUrlInput, startMonitorBtn, stopMonitorBtn } = elements;
+        const {sseUrlInput, startMonitorBtn, stopMonitorBtn} = elements;
 
         // Set up monitoring buttons
         if (startMonitorBtn) {
@@ -184,7 +185,7 @@ export function initDockPanel(elements, state, renderer) {
      * Start monitoring the behavior tree execution
      */
     function startMonitoring() {
-        const { sseUrlInput, monitorStatusIndicator, monitorStatusText, startMonitorBtn, stopMonitorBtn } = elements;
+        const {sseUrlInput, monitorStatusIndicator, monitorStatusText, startMonitorBtn, stopMonitorBtn} = elements;
 
         if (stateManager.getState().monitor.active) return;
 
@@ -212,11 +213,11 @@ export function initDockPanel(elements, state, renderer) {
             if (stopMonitorBtn) stopMonitorBtn.style.display = 'block';
 
             // Set up event handlers
-            eventSource.onopen = function() {
+            eventSource.onopen = function () {
                 logger.info('Monitoring connection established');
             };
 
-            eventSource.onmessage = function(event) {
+            eventSource.onmessage = function (event) {
                 try {
                     const data = JSON.parse(event.data);
                     processMonitoringData(data);
@@ -225,7 +226,7 @@ export function initDockPanel(elements, state, renderer) {
                 }
             };
 
-            eventSource.onerror = function(error) {
+            eventSource.onerror = function (error) {
                 logger.error('Monitoring connection error:', error);
                 stopMonitoring();
 
@@ -250,7 +251,7 @@ export function initDockPanel(elements, state, renderer) {
      * Stop monitoring
      */
     function stopMonitoring() {
-        const { monitorStatusIndicator, monitorStatusText, startMonitorBtn, stopMonitorBtn } = elements;
+        const {monitorStatusIndicator, monitorStatusText, startMonitorBtn, stopMonitorBtn} = elements;
 
         if (!stateManager.getState().monitor.active) return;
 
@@ -333,7 +334,7 @@ export function initDockPanel(elements, state, renderer) {
      * Toggle the dock panel collapsed state
      */
     function toggleDockPanel() {
-        const { dockPanel } = elements;
+        const {dockPanel} = elements;
         if (!dockPanel) return;
 
         dockPanel.classList.toggle('collapsed');
@@ -358,7 +359,7 @@ export function initDockPanel(elements, state, renderer) {
      * @param {string} nodeType - Node type identifier
      */
     function openNodeTypeContextMenu(e, nodeType) {
-        const { nodeTypeContextMenu } = elements;
+        const {nodeTypeContextMenu} = elements;
         if (!nodeTypeContextMenu) return;
 
         e.preventDefault();
@@ -373,7 +374,7 @@ export function initDockPanel(elements, state, renderer) {
 
         // Add one-time event listener to hide menu when clicking elsewhere
         setTimeout(() => {
-            window.addEventListener('click', hideNodeTypeContextMenu, { once: true });
+            window.addEventListener('click', hideNodeTypeContextMenu, {once: true});
         }, 0);
     }
 
@@ -381,7 +382,7 @@ export function initDockPanel(elements, state, renderer) {
      * Hide the node type context menu
      */
     function hideNodeTypeContextMenu() {
-        const { nodeTypeContextMenu } = elements;
+        const {nodeTypeContextMenu} = elements;
         if (!nodeTypeContextMenu) return;
 
         nodeTypeContextMenu.style.display = 'none';
@@ -391,7 +392,7 @@ export function initDockPanel(elements, state, renderer) {
      * Show the create node modal
      */
     function showCreateNodeModal() {
-        const { createNodeModal } = elements;
+        const {createNodeModal} = elements;
         if (!createNodeModal) return;
 
         createNodeModal.style.display = 'block';
@@ -425,14 +426,14 @@ export function initDockPanel(elements, state, renderer) {
 
         if (closeCreateModal) {
             closeCreateModal.addEventListener('click', () => {
-                const { createNodeModal } = elements;
+                const {createNodeModal} = elements;
                 if (createNodeModal) createNodeModal.style.display = 'none';
             });
         }
 
         if (cancelCreateNodeBtn) {
             cancelCreateNodeBtn.addEventListener('click', () => {
-                const { createNodeModal } = elements;
+                const {createNodeModal} = elements;
                 if (createNodeModal) createNodeModal.style.display = 'none';
             });
         }
@@ -503,7 +504,7 @@ export function initDockPanel(elements, state, renderer) {
         // Reset form and close modal
         nameInput.value = '';
 
-        const { createNodeModal } = elements;
+        const {createNodeModal} = elements;
         if (createNodeModal) createNodeModal.style.display = 'none';
 
         logger.info(`Created custom node type: ${name} (${category})`);
@@ -519,7 +520,7 @@ export function initDockPanel(elements, state, renderer) {
     };
 }
 
-   /**
+/**
  * Validate a node property value based on its type and constraints
  * @param {string|number|boolean} value - Property value to validate
  * @param {string} type - Property type (string, number, boolean, integer, etc)
@@ -537,7 +538,7 @@ export function validateNodeProperty(value, type, constraints = {}) {
 
     // Empty non-required values are valid
     if (value === undefined || value === null || value === '') {
-        return { valid: true, message: '' };
+        return {valid: true, message: ''};
     }
 
     // Validate based on type
@@ -572,7 +573,7 @@ export function validateNodeProperty(value, type, constraints = {}) {
                 };
             }
 
-            return { valid: true, message: '' };
+            return {valid: true, message: ''};
 
         case 'number':
         case 'float':
@@ -601,7 +602,7 @@ export function validateNodeProperty(value, type, constraints = {}) {
                 };
             }
 
-            return { valid: true, message: '' };
+            return {valid: true, message: ''};
 
         case 'integer':
             // Convert to number and check if integer
@@ -629,16 +630,16 @@ export function validateNodeProperty(value, type, constraints = {}) {
                 };
             }
 
-            return { valid: true, message: '' };
+            return {valid: true, message: ''};
 
         case 'boolean':
             // Check if value is a valid boolean
             if (value === true || value === false) {
-                return { valid: true, message: '' };
+                return {valid: true, message: ''};
             }
 
             if (value === 'true' || value === 'false') {
-                return { valid: true, message: '' };
+                return {valid: true, message: ''};
             }
 
             return {
@@ -655,10 +656,10 @@ export function validateNodeProperty(value, type, constraints = {}) {
                 };
             }
 
-            return { valid: true, message: '' };
+            return {valid: true, message: ''};
 
         default:
             // For unknown types, assume it's valid
-            return { valid: true, message: '' };
+            return {valid: true, message: ''};
     }
 }
