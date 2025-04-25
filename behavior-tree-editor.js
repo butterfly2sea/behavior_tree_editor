@@ -12,7 +12,7 @@ const state = {
     pendingConnection: null, // For two-click connection system
     selectedConnection: null,
     nodeCounter: 0,
-    mousePosition: { x: 0, y: 0 },
+    mousePosition: {x: 0, y: 0},
     customNodeTypes: [],
     collapsedCategories: {},
     // Selection box for multi-select
@@ -397,7 +397,7 @@ function onCanvasMouseMove(e) {
 }
 
 function onCanvasMouseUp(e) {
-    // If drawing a selection box, complete it
+    // 处理选择框
     if (state.selectionBox.active) {
         state.selectionBox.active = false;
         selectNodesInBox();
@@ -409,9 +409,9 @@ function onCanvasMouseUp(e) {
         }
     }
 
-    // If dragging nodes, complete the drag operation properly
+    // 触发文档级mouseup事件处理器以确保拖拽状态正确清理
     if (state.dragging.active) {
-        state.dragging.active = false;
+        // state.dragging.active = false;
         state.dragging.nodes = [];
 
         // Clear any alignment guides
@@ -423,7 +423,7 @@ function onCanvasMouseUp(e) {
         document.removeEventListener('mouseup', onDocumentMouseUp);
     }
 
-    // Update panel for selection
+    // 更新面板
     updatePropertiesPanel();
 }
 
@@ -432,7 +432,7 @@ function updateSelectionBox() {
     const selectionBoxEl = document.getElementById('selection-box');
     if (!selectionBoxEl) return;
 
-    const { startX, startY, endX, endY } = state.selectionBox;
+    const {startX, startY, endX, endY} = state.selectionBox;
 
     // Calculate box dimensions
     const left = Math.min(startX, endX);
@@ -448,7 +448,7 @@ function updateSelectionBox() {
 }
 
 function selectNodesInBox() {
-    const { startX, startY, endX, endY } = state.selectionBox;
+    const {startX, startY, endX, endY} = state.selectionBox;
 
     // Calculate box boundaries
     const left = Math.min(startX, endX);
@@ -586,14 +586,14 @@ function onDocumentMouseUp(e) {
         state.dragging.active = false;
         state.dragging.nodes = [];
 
-        // Clear any alignment guides
+        // 清除对齐辅助线
         clearAlignmentGuides();
 
-        // Remove event listeners
+        // 确保总是移除文档级事件监听器
         document.removeEventListener('mousemove', onDocumentMouseMove);
         document.removeEventListener('mouseup', onDocumentMouseUp);
 
-        // Update rendering
+        // 更新渲染
         renderNodes();
         renderConnections();
     }
@@ -604,8 +604,8 @@ function calculateAlignment(nodeInfos) {
     // Check if we should perform alignment
     if (nodeInfos.length <= 1) {
         return {
-            horizontal: { active: false },
-            vertical: { active: false }
+            horizontal: {active: false},
+            vertical: {active: false}
         };
     }
 
@@ -613,8 +613,8 @@ function calculateAlignment(nodeInfos) {
     const selectedNodeIds = nodeInfos.map(info => info.id);
 
     // For each dragging node, check alignment with other nodes
-    let horizontalGuide = { active: false, position: 0, similarity: Number.MAX_VALUE };
-    let verticalGuide = { active: false, position: 0, similarity: Number.MAX_VALUE };
+    let horizontalGuide = {active: false, position: 0, similarity: Number.MAX_VALUE};
+    let verticalGuide = {active: false, position: 0, similarity: Number.MAX_VALUE};
 
     // Threshold for snapping (in pixels)
     const snapThreshold = 10;
@@ -659,13 +659,13 @@ function calculateAlignment(nodeInfos) {
 
             // Find best horizontal alignment
             if (topDiff < snapThreshold && topDiff < horizontalGuide.similarity) {
-                horizontalGuide = { active: true, position: staticNode.top, similarity: topDiff };
+                horizontalGuide = {active: true, position: staticNode.top, similarity: topDiff};
             }
             if (centerYDiff < snapThreshold && centerYDiff < horizontalGuide.similarity) {
-                horizontalGuide = { active: true, position: staticNode.centerY, similarity: centerYDiff };
+                horizontalGuide = {active: true, position: staticNode.centerY, similarity: centerYDiff};
             }
             if (bottomDiff < snapThreshold && bottomDiff < horizontalGuide.similarity) {
-                horizontalGuide = { active: true, position: staticNode.bottom, similarity: bottomDiff };
+                horizontalGuide = {active: true, position: staticNode.bottom, similarity: bottomDiff};
             }
 
             // Check vertical alignment (left, center, right)
@@ -675,13 +675,13 @@ function calculateAlignment(nodeInfos) {
 
             // Find best vertical alignment
             if (leftDiff < snapThreshold && leftDiff < verticalGuide.similarity) {
-                verticalGuide = { active: true, position: staticNode.left, similarity: leftDiff };
+                verticalGuide = {active: true, position: staticNode.left, similarity: leftDiff};
             }
             if (centerXDiff < snapThreshold && centerXDiff < verticalGuide.similarity) {
-                verticalGuide = { active: true, position: staticNode.centerX, similarity: centerXDiff };
+                verticalGuide = {active: true, position: staticNode.centerX, similarity: centerXDiff};
             }
             if (rightDiff < snapThreshold && rightDiff < verticalGuide.similarity) {
-                verticalGuide = { active: true, position: staticNode.right, similarity: rightDiff };
+                verticalGuide = {active: true, position: staticNode.right, similarity: rightDiff};
             }
         });
     });
@@ -1019,7 +1019,7 @@ function handleNodeTypeContextMenu(e, nodeType) {
 
     // Add one-time event listener to hide menu when clicking elsewhere
     setTimeout(() => {
-        window.addEventListener('click', hideNodeTypeContextMenu, { once: true });
+        window.addEventListener('click', hideNodeTypeContextMenu, {once: true});
     }, 0);
 }
 
@@ -1218,7 +1218,7 @@ function handleConnectionRightClick(e, connectionId) {
 
     // Add one-time event listener to hide menu when clicking elsewhere
     setTimeout(() => {
-        window.addEventListener('click', hideConnectionContextMenu, { once: true });
+        window.addEventListener('click', hideConnectionContextMenu, {once: true});
     }, 0);
 }
 
@@ -1451,8 +1451,8 @@ function updatePropertiesPanel() {
         if (nodeDef && nodeDef.properties && nodeDef.properties.length > 0) {
             nodeDef.properties.forEach(prop => {
                 const value = node.properties[prop.name] !== undefined ?
-                            node.properties[prop.name] :
-                            (prop.default || '');
+                    node.properties[prop.name] :
+                    (prop.default || '');
 
                 html += `
                     <div class="parameter-row">
@@ -1556,7 +1556,7 @@ function validateRootNodes() {
         };
     }
 
-    return { isValid: true, message: "" };
+    return {isValid: true, message: ""};
 }
 
 // Server-Sent Events for Monitoring
@@ -1580,11 +1580,11 @@ function startMonitoring() {
         stopMonitorBtn.style.display = 'block';
 
         // Set up event handlers
-        eventSource.onopen = function() {
+        eventSource.onopen = function () {
             console.log('Monitoring connection established');
         };
 
-        eventSource.onmessage = function(event) {
+        eventSource.onmessage = function (event) {
             try {
                 const data = JSON.parse(event.data);
                 processMonitoringData(data);
@@ -1593,7 +1593,7 @@ function startMonitoring() {
             }
         };
 
-        eventSource.onerror = function(error) {
+        eventSource.onerror = function (error) {
             console.error('Monitoring connection error:', error);
             stopMonitoring();
 
@@ -1688,7 +1688,7 @@ function saveTree() {
         grid: state.grid
     };
 
-    const blob = new Blob([JSON.stringify(treeData, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(treeData, null, 2)], {type: 'application/json'});
     const url = URL.createObjectURL(blob);
 
     const a = document.createElement('a');
