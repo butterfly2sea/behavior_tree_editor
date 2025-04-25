@@ -411,7 +411,7 @@ function onCanvasMouseUp(e) {
 
     // 确保在画布mouseup事件中也正确处理拖拽结束
     if (state.dragging.active) {
-        // state.dragging.active = false;
+        state.dragging.active = false;
         state.dragging.nodes = [];
         clearAlignmentGuides();
 
@@ -508,6 +508,10 @@ function selectAllNodes() {
 
 // Dragging multiple nodes
 function startNodeDrag(x, y) {
+    // 先移除可能存在的事件监听器，防止重复添加
+    document.removeEventListener('mousemove', onDocumentMouseMove);
+    document.removeEventListener('mouseup', onDocumentMouseUp);
+
     state.dragging.active = true;
     state.dragging.startX = x;
     state.dragging.startY = y;
@@ -868,6 +872,18 @@ function onDrop(e) {
         renderNodes();
         updatePropertiesPanel();
     }
+
+    // 添加这段代码确保拖拽状态被重置
+    if (state.dragging.active) {
+        state.dragging.active = false;
+        state.dragging.nodes = [];
+        clearAlignmentGuides();
+
+        // 移除document级别的事件监听器
+        document.removeEventListener('mousemove', onDocumentMouseMove);
+        document.removeEventListener('mouseup', onDocumentMouseUp);
+    }
+
 }
 
 // Node operations
@@ -1945,6 +1961,8 @@ function init() {
 
     // Set up event listeners
     setupEventListeners();
+
+    window.addEventListener('blur', onDocumentMouseUp);
 }
 
 function setupEventListeners() {
