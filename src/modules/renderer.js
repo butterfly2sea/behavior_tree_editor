@@ -65,33 +65,33 @@ export function initRenderer(elements, state) {
         const renderingState = stateManager.getState().rendering;
         renderingState.isPending = false;
 
-        // Apply viewport transform
+        // 应用视口变换
         applyViewportTransform();
 
-        // Update visible area for virtual scrolling
+        // 更新可视区域
         updateVisibleArea();
 
-        // Update grid if needed
+        // 更新网格
         if (renderingState.needsFullUpdate) {
             renderGrid();
         }
 
-        // Render nodes and connections
+        // 渲染节点和连接
         if (renderingState.needsFullUpdate) {
             renderAllNodes();
             renderAllConnections();
-        } else {
-            // Selective updates
+        } else if (renderingState.updatedNodeIds.size > 0 || renderingState.updatedConnectionIds.size > 0) {
+            // 只有在有更新时才执行选择性更新
             renderUpdatedNodes();
             renderUpdatedConnections();
         }
 
-        // Render minimap if visible
+        // 渲染小地图
         if (stateManager.getMinimap().isVisible) {
             renderMinimap();
         }
 
-        // Clear update tracking
+        // 清除更新跟踪
         renderingState.needsFullUpdate = false;
         renderingState.updatedNodeIds.clear();
         renderingState.updatedConnectionIds.clear();

@@ -834,7 +834,6 @@ function handleCanvasDrop(e, elements, state, renderer) {
     }
 
     renderer.requestRender();
-    // 添加这一行确保请求重新渲染
 }
 
 // Find a node at a specific point in world coordinates

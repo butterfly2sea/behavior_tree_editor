@@ -149,6 +149,7 @@ export function initState() {
         updateNode: (nodeId, updates) => {
             const node = state.nodes.find(n => n.id === nodeId);
             if (node) {
+                // 应用更新
                 Object.assign(node, updates);
                 logger.debug('Node updated:', nodeId);
                 editorEvents.emit(EDITOR_EVENTS.NODE_UPDATED, node);
