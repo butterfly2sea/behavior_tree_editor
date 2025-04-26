@@ -3,9 +3,9 @@
  * Manages viewport transformations for infinite canvas
  */
 
-import { editorEvents, EDITOR_EVENTS } from './events.js';
-import { logger } from '../index.js';
-import { screenToWorld } from './renderer.js';
+import {editorEvents, EDITOR_EVENTS} from './events.js';
+import {logger} from '../index.js';
+import {screenToWorld} from './renderer.js';
 
 export function initViewport(elements, state, renderer) {
     const stateManager = state;
@@ -32,7 +32,7 @@ export function initViewport(elements, state, renderer) {
 
         // If focus point is provided, zoom toward that point
         if (focusPoint) {
-            const { canvas } = elements;
+            const {canvas} = elements;
 
             // Get focus point in world coordinates before zoom
             const worldPointBefore = screenToWorld(
@@ -42,13 +42,13 @@ export function initViewport(elements, state, renderer) {
             );
 
             // Update scale
-            stateManager.updateViewport({ scale: newScale });
+            stateManager.updateViewport({scale: newScale});
 
             // Get focus point in world coordinates after zoom
             const worldPointAfter = screenToWorld(
                 focusPoint.x,
                 focusPoint.y,
-                { ...viewport, scale: newScale }
+                {...viewport, scale: newScale}
             );
 
             // Adjust offset to keep focus point stationary
@@ -58,7 +58,7 @@ export function initViewport(elements, state, renderer) {
             });
         } else {
             // Just update scale without adjusting offset
-            stateManager.updateViewport({ scale: newScale });
+            stateManager.updateViewport({scale: newScale});
         }
 
         // Notify about zoom change
@@ -118,14 +118,14 @@ export function initViewport(elements, state, renderer) {
      * @param {number} y - Y coordinate in world space
      */
     function centerOn(x, y) {
-        const { canvas } = elements;
+        const {canvas} = elements;
         const viewport = stateManager.getViewport();
 
         // Calculate center offset
         const offsetX = -x + canvas.clientWidth / (2 * viewport.scale);
         const offsetY = -y + canvas.clientHeight / (2 * viewport.scale);
 
-        stateManager.updateViewport({ offsetX, offsetY });
+        stateManager.updateViewport({offsetX, offsetY});
 
         // Request render update
         renderer.requestRender(true);
@@ -171,7 +171,7 @@ export function initViewport(elements, state, renderer) {
         maxY += padding;
 
         // Calculate required scale
-        const { canvas } = elements;
+        const {canvas} = elements;
         const contentWidth = maxX - minX;
         const contentHeight = maxY - minY;
         const scaleX = canvas.clientWidth / contentWidth;

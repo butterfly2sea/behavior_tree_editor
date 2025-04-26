@@ -3,8 +3,8 @@
  * Centralizes application state and provides methods for state manipulation
  */
 
-import { editorEvents, EDITOR_EVENTS } from './events.js';
-import { logger } from '../index.js';
+import {editorEvents, EDITOR_EVENTS} from './events.js';
+import {logger} from '../index.js';
 
 // Initial state object
 const initialState = {
@@ -15,7 +15,7 @@ const initialState = {
     pendingConnection: null, // For two-click connection system
     selectedConnection: null,
     nodeCounter: 0,
-    mousePosition: { x: 0, y: 0 },
+    mousePosition: {x: 0, y: 0},
     customNodeTypes: [],
     collapsedCategories: {},
 
@@ -99,7 +99,7 @@ const initialState = {
 };
 
 // Create a new state object
-let state = { ...initialState };
+let state = {...initialState};
 
 // State access and mutation methods
 export function initState() {
@@ -240,7 +240,7 @@ export function initState() {
         },
 
         startPendingConnection: (sourceId, sourcePort) => {
-            state.pendingConnection = { sourceId, sourcePort };
+            state.pendingConnection = {sourceId, sourcePort};
             logger.debug('Pending connection started from:', sourceId);
         },
 
@@ -316,7 +316,7 @@ export function initState() {
 
         resetState: () => {
             // Preserve some settings like grid and viewport
-            const { grid, viewport, layout, customNodeTypes, collapsedCategories } = state;
+            const {grid, viewport, layout, customNodeTypes, collapsedCategories} = state;
 
             // Reset to initial state
             state = {
@@ -335,7 +335,7 @@ export function initState() {
 
         loadState: (newState) => {
             // Preserve some settings
-            const { viewport } = state;
+            const {viewport} = state;
 
             // Load new state
             state = {

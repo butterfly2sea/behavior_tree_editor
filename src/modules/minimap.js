@@ -3,8 +3,8 @@
  * Provides a minimap navigation for the behavior tree editor
  */
 
-import { editorEvents, EDITOR_EVENTS } from './events.js';
-import { logger } from '../index.js';
+import {editorEvents, EDITOR_EVENTS} from './events.js';
+import {logger} from '../index.js';
 
 export function initMinimap(elements, state, renderer) {
     const stateManager = state;
@@ -21,7 +21,7 @@ export function initMinimap(elements, state, renderer) {
      * Set up the minimap container and canvas
      */
     function setupMinimap() {
-        const { minimap, minimapContainer } = elements;
+        const {minimap, minimapContainer} = elements;
 
         if (!minimap || !minimapContainer) return;
 
@@ -38,7 +38,7 @@ export function initMinimap(elements, state, renderer) {
      * Add a resize handle to the minimap
      */
     function addResizeHandle() {
-        const { minimapContainer } = elements;
+        const {minimapContainer} = elements;
         if (!minimapContainer) return;
 
         // Create resize handle
@@ -56,7 +56,7 @@ export function initMinimap(elements, state, renderer) {
      */
     function handleResizeStart(e) {
         e.preventDefault();
-        const { minimap, minimapContainer } = elements;
+        const {minimap, minimapContainer} = elements;
 
         // Get initial size and mouse position
         const initialWidth = minimapContainer.clientWidth;
@@ -101,7 +101,7 @@ export function initMinimap(elements, state, renderer) {
      * Toggle minimap visibility
      */
     function toggleMinimap() {
-        const { minimapContainer } = elements;
+        const {minimapContainer} = elements;
         const minimapState = stateManager.getMinimap();
 
         if (!minimapContainer) return;
@@ -121,7 +121,7 @@ export function initMinimap(elements, state, renderer) {
      * @param {number} height - New height
      */
     function setMinimapSize(width, height) {
-        const { minimap, minimapContainer } = elements;
+        const {minimap, minimapContainer} = elements;
         const minimapState = stateManager.getMinimap();
 
         if (!minimap || !minimapContainer) return;
@@ -145,7 +145,7 @@ export function initMinimap(elements, state, renderer) {
         const nodes = stateManager.getNodes();
 
         if (nodes.length === 0) {
-            return { minX: -500, minY: -500, maxX: 500, maxY: 500, width: 1000, height: 1000 };
+            return {minX: -500, minY: -500, maxX: 500, maxY: 500, width: 1000, height: 1000};
         }
 
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -202,7 +202,7 @@ export function initMinimap(elements, state, renderer) {
         const worldPos = minimapToWorld(x, y);
 
         // Center viewport on this point
-        const { canvas } = elements;
+        const {canvas} = elements;
         const viewport = stateManager.getViewport();
 
         stateManager.updateViewport({
@@ -218,7 +218,7 @@ export function initMinimap(elements, state, renderer) {
      * Set up event listeners for minimap
      */
     function setupEventListeners() {
-        const { minimap, minimapContainer } = elements;
+        const {minimap, minimapContainer} = elements;
 
         if (!minimap) return;
 

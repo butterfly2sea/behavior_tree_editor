@@ -4,20 +4,20 @@
  */
 
 // Import modules
-import { initState } from './modules/state.js';
-import { initRenderer } from './modules/renderer.js';
-import { initEvents, editorEvents, EDITOR_EVENTS } from './modules/events.js';
-import { initViewport } from './modules/viewport.js';
-import { initGrid } from './modules/grid.js';
-import { initMinimap } from './modules/minimap.js';
-import { initNodes } from './modules/nodes.js';
-import { initConnections } from './modules/connections.js';
-import { initSerialization } from './modules/serialization.js';
-import { initLayout } from './modules/layout.js';
-import { initToolbar } from './components/toolbar.js';
-import { initDockPanel } from './components/dock-panel.js';
-import { initPropertiesPanel } from './components/properties-panel.js';
-import { Logger, LogLevel } from './utils/logger.js';
+import {initState} from './modules/state.js';
+import {initRenderer} from './modules/renderer.js';
+import {initEvents, editorEvents, EDITOR_EVENTS} from './modules/events.js';
+import {initViewport} from './modules/viewport.js';
+import {initGrid} from './modules/grid.js';
+import {initMinimap} from './modules/minimap.js';
+import {initNodes} from './modules/nodes.js';
+import {initConnections} from './modules/connections.js';
+import {initSerialization} from './modules/serialization.js';
+import {initLayout} from './modules/layout.js';
+import {initToolbar} from './components/toolbar.js';
+import {initDockPanel} from './components/dock-panel.js';
+import {initPropertiesPanel} from './components/properties-panel.js';
+import {Logger, LogLevel} from './utils/logger.js';
 
 // Create global logger
 export const logger = new Logger(LogLevel.INFO);

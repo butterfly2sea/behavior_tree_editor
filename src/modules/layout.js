@@ -3,8 +3,8 @@
  * Provides algorithms for automatic layout of behavior trees
  */
 
-import { editorEvents, EDITOR_EVENTS } from './events.js';
-import { logger } from '../index.js';
+import {editorEvents, EDITOR_EVENTS} from './events.js';
+import {logger} from '../index.js';
 
 export function initLayout(elements, state, renderer) {
     const stateManager = state;
@@ -292,7 +292,7 @@ export function initLayout(elements, state, renderer) {
         }
 
         // Return final positions (without velocity data)
-        return positions.map(({ id, x, y }) => ({ id, x, y }));
+        return positions.map(({id, x, y}) => ({id, x, y}));
     }
 
     /**
@@ -302,7 +302,7 @@ export function initLayout(elements, state, renderer) {
     function applyNewPositions(positions) {
         // Update node positions in state
         positions.forEach(pos => {
-            stateManager.updateNode(pos.id, { x: pos.x, y: pos.y });
+            stateManager.updateNode(pos.id, {x: pos.x, y: pos.y});
         });
 
         // Notify about node movement
@@ -340,7 +340,7 @@ export function initLayout(elements, state, renderer) {
                     const x = origPos.x + (newPos.x - origPos.x) * progress;
                     const y = origPos.y + (newPos.y - origPos.y) * progress;
 
-                    stateManager.updateNode(origPos.id, { x, y });
+                    stateManager.updateNode(origPos.id, {x, y});
                 }
             });
 
@@ -382,7 +382,7 @@ export function initLayout(elements, state, renderer) {
         const layoutTypeSelect = document.getElementById('layout-type');
         if (layoutTypeSelect) {
             layoutTypeSelect.addEventListener('change', e => {
-                updateLayoutSettings({ type: e.target.value });
+                updateLayoutSettings({type: e.target.value});
             });
         }
 

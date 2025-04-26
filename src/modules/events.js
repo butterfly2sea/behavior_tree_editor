@@ -3,8 +3,8 @@
  * Manages all DOM events and custom event system
  */
 
-import { EventEmitter } from '../utils/event-emitter.js';
-import { logger } from '../index.js';
+import {EventEmitter} from '../utils/event-emitter.js';
+import {logger} from '../index.js';
 
 // Create global event emitter
 export const editorEvents = new EventEmitter();
@@ -96,7 +96,7 @@ export function initEvents(elements, state, renderer) {
 
 // Initialize canvas-related events
 function initCanvasEvents(elements, state, renderer) {
-    const { canvas } = elements;
+    const {canvas} = elements;
     const stateManager = state;
 
     // Setup canvas drag and drop
@@ -134,7 +134,7 @@ function initCanvasEvents(elements, state, renderer) {
 
 // Handle mouse down on canvas
 function handleCanvasMouseDown(e, elements, state, renderer) {
-    const { canvas } = elements;
+    const {canvas} = elements;
     const stateManager = state;
 
     // Get canvas-relative coordinates
@@ -143,7 +143,7 @@ function handleCanvasMouseDown(e, elements, state, renderer) {
     const clientY = e.clientY - rect.top;
 
     // Convert to world coordinates
-    const { x, y } = screenToWorldCoordinates(clientX, clientY, stateManager.getViewport());
+    const {x, y} = screenToWorldCoordinates(clientX, clientY, stateManager.getViewport());
 
     // Right-click is not handled here (context menu)
     if (e.button === 2) return;
@@ -165,7 +165,7 @@ function handleCanvasMouseDown(e, elements, state, renderer) {
 
             // Start selection box
             stateManager.startSelectionBox(x, y);
-            editorEvents.emit(EDITOR_EVENTS.SELECTION_BOX_STARTED, { x, y });
+            editorEvents.emit(EDITOR_EVENTS.SELECTION_BOX_STARTED, {x, y});
 
             // Create visual selection box
             createSelectionBoxElement(elements, state);
@@ -202,7 +202,7 @@ function handleCanvasMouseDown(e, elements, state, renderer) {
 
 // Handle mouse move on canvas
 function handleCanvasMouseMove(e, elements, state, renderer) {
-    const { canvas } = elements;
+    const {canvas} = elements;
     const stateManager = state;
 
     // Get canvas-relative coordinates
@@ -211,7 +211,7 @@ function handleCanvasMouseMove(e, elements, state, renderer) {
     const clientY = e.clientY - rect.top;
 
     // Convert to world coordinates
-    const { x, y } = screenToWorldCoordinates(clientX, clientY, stateManager.getViewport());
+    const {x, y} = screenToWorldCoordinates(clientX, clientY, stateManager.getViewport());
 
     // Update mouse position in state
     stateManager.setMousePosition(x, y);
@@ -257,7 +257,7 @@ function handleCanvasMouseMove(e, elements, state, renderer) {
                         newY = Math.round(newY / stateManager.getGrid().size) * stateManager.getGrid().size;
                     }
 
-                    stateManager.updateNode(node.id, { x: newX, y: newY });
+                    stateManager.updateNode(node.id, {x: newX, y: newY});
                 }
             });
 
@@ -277,7 +277,7 @@ function handleCanvasMouseMove(e, elements, state, renderer) {
 
 // Handle mouse up on canvas
 function handleCanvasMouseUp(e, elements, state, renderer) {
-    const { canvas } = elements;
+    const {canvas} = elements;
     const stateManager = state;
 
     // Get canvas-relative coordinates
@@ -286,7 +286,7 @@ function handleCanvasMouseUp(e, elements, state, renderer) {
     const clientY = e.clientY - rect.top;
 
     // Convert to world coordinates
-    const { x, y } = screenToWorldCoordinates(clientX, clientY, stateManager.getViewport());
+    const {x, y} = screenToWorldCoordinates(clientX, clientY, stateManager.getViewport());
 
     // Handle selection box completion
     if (stateManager.getState().selectionBox.active) {
@@ -317,7 +317,7 @@ function handleCanvasMouseUp(e, elements, state, renderer) {
 function handleCanvasWheel(e, elements, state, renderer) {
     e.preventDefault();
 
-    const { canvas } = elements;
+    const {canvas} = elements;
     const stateManager = state;
 
     // Get canvas-relative coordinates
@@ -337,7 +337,7 @@ function handleCanvasWheel(e, elements, state, renderer) {
     const newScale = stateManager.getViewport().scale * zoomFactor;
 
     // Update scale
-    stateManager.updateViewport({ scale: newScale });
+    stateManager.updateViewport({scale: newScale});
 
     // Get mouse position in world coordinates after zoom
     const mouseWorldPosAfterZoom = screenToWorldCoordinates(
@@ -349,9 +349,9 @@ function handleCanvasWheel(e, elements, state, renderer) {
     // Adjust offset to zoom toward/from mouse position
     stateManager.updateViewport({
         offsetX: stateManager.getViewport().offsetX +
-                 (mouseWorldPosBeforeZoom.x - mouseWorldPosAfterZoom.x),
+            (mouseWorldPosBeforeZoom.x - mouseWorldPosAfterZoom.x),
         offsetY: stateManager.getViewport().offsetY +
-                 (mouseWorldPosBeforeZoom.y - mouseWorldPosAfterZoom.y)
+            (mouseWorldPosBeforeZoom.y - mouseWorldPosAfterZoom.y)
     });
 
     // Emit zoom changed event
@@ -363,7 +363,7 @@ function handleCanvasWheel(e, elements, state, renderer) {
 
 // Initialize minimap events
 function initMinimapEvents(elements, state, renderer) {
-    const { minimap } = elements;
+    const {minimap} = elements;
     if (!minimap) return;
 
     minimap.addEventListener('mousedown', (e) => {
@@ -400,7 +400,7 @@ function initZoomControlEvents(elements, state, renderer) {
         zoomInBtn.addEventListener('click', () => {
             const stateManager = state;
             const newScale = stateManager.getViewport().scale * 1.2;
-            stateManager.updateViewport({ scale: newScale });
+            stateManager.updateViewport({scale: newScale});
             editorEvents.emit(EDITOR_EVENTS.ZOOM_CHANGED, newScale);
             renderer.requestRender(true);
         });
@@ -410,7 +410,7 @@ function initZoomControlEvents(elements, state, renderer) {
         zoomOutBtn.addEventListener('click', () => {
             const stateManager = state;
             const newScale = stateManager.getViewport().scale * 0.8;
-            stateManager.updateViewport({ scale: newScale });
+            stateManager.updateViewport({scale: newScale});
             editorEvents.emit(EDITOR_EVENTS.ZOOM_CHANGED, newScale);
             renderer.requestRender(true);
         });
@@ -419,7 +419,7 @@ function initZoomControlEvents(elements, state, renderer) {
     if (zoomResetBtn) {
         zoomResetBtn.addEventListener('click', () => {
             const stateManager = state;
-            stateManager.updateViewport({ scale: 1.0 });
+            stateManager.updateViewport({scale: 1.0});
             editorEvents.emit(EDITOR_EVENTS.ZOOM_CHANGED, 1.0);
             renderer.requestRender(true);
         });
@@ -428,7 +428,7 @@ function initZoomControlEvents(elements, state, renderer) {
 
 // Initialize context menu events
 function initContextMenuEvents(elements, state, renderer) {
-    const { connectionContextMenu, nodeTypeContextMenu } = elements;
+    const {connectionContextMenu, nodeTypeContextMenu} = elements;
     const stateManager = state;
 
     // Handle connection context menu
@@ -457,7 +457,7 @@ function initContextMenuEvents(elements, state, renderer) {
                     stateManager.removeCustomNodeType(nodeType);
                     nodeTypeContextMenu.style.display = 'none';
                     // This should trigger a node tree view update
-                    editorEvents.emit(EDITOR_EVENTS.NODE_TYPE_REMOVED, { type: nodeType });
+                    editorEvents.emit(EDITOR_EVENTS.NODE_TYPE_REMOVED, {type: nodeType});
                 }
             });
         }
@@ -481,7 +481,7 @@ function initContextMenuEvents(elements, state, renderer) {
 
 // Handle click on the minimap
 function handleMinimapClick(x, y, elements, state, renderer) {
-    const { minimap } = elements;
+    const {minimap} = elements;
     const stateManager = state;
 
     // Calculate bounds of all nodes
@@ -666,7 +666,7 @@ function showInvalidConnectionFeedback(nodeId, message, elements) {
 
 // Create visual selection box element
 function createSelectionBoxElement(elements, state) {
-    const { canvas } = elements;
+    const {canvas} = elements;
     const selectionBoxEl = document.createElement('div');
     selectionBoxEl.className = 'selection-box';
     selectionBoxEl.id = 'selection-box';
@@ -748,7 +748,7 @@ function selectNodesInBox(elements, state, renderer) {
 function handleCanvasDrop(e, elements, state, renderer) {
     e.preventDefault();
 
-    const { canvas } = elements;
+    const {canvas} = elements;
     const stateManager = state;
 
     // Get drop coordinates
@@ -757,7 +757,7 @@ function handleCanvasDrop(e, elements, state, renderer) {
     const clientY = e.clientY - rect.top;
 
     // Convert to world coordinates
-    const { x, y } = screenToWorldCoordinates(clientX, clientY, stateManager.getViewport());
+    const {x, y} = screenToWorldCoordinates(clientX, clientY, stateManager.getViewport());
 
     // Get drop data
     const nodeType = e.dataTransfer.getData('nodeType');
@@ -788,7 +788,7 @@ function handleCanvasDrop(e, elements, state, renderer) {
                             newY = Math.round(newY / stateManager.getGrid().size) * stateManager.getGrid().size;
                         }
 
-                        stateManager.updateNode(id, { x: newX, y: newY });
+                        stateManager.updateNode(id, {x: newX, y: newY});
                     }
                 });
 
@@ -807,7 +807,7 @@ function handleCanvasDrop(e, elements, state, renderer) {
                     newY = Math.round(newY / stateManager.getGrid().size) * stateManager.getGrid().size;
                 }
 
-                stateManager.updateNode(nodeId, { x: newX, y: newY });
+                stateManager.updateNode(nodeId, {x: newX, y: newY});
                 editorEvents.emit(EDITOR_EVENTS.NODE_MOVED, [nodeId]);
             }
         }
@@ -869,7 +869,7 @@ function worldToScreenCoordinates(x, y, viewport) {
 // Calculate bounds of all nodes for minimap
 function calculateNodesBounds(nodes) {
     if (nodes.length === 0) {
-        return { minX: -500, minY: -500, maxX: 500, maxY: 500, width: 1000, height: 1000 };
+        return {minX: -500, minY: -500, maxX: 500, maxY: 500, width: 1000, height: 1000};
     }
 
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;

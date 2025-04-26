@@ -18,7 +18,7 @@ export const NODE_TYPES = {
             builtin: true,
             description: 'Ticks children in order until one fails. Succeeds if all children succeed, fails if any child fails.',
             properties: [
-                { name: 'memory', type: 'boolean', default: 'false', description: 'Remember progress after a halt' }
+                {name: 'memory', type: 'boolean', default: 'false', description: 'Remember progress after a halt'}
             ],
             maxChildren: null, // Unlimited children
             canBeChildless: false // Must have at least one child
@@ -38,7 +38,7 @@ export const NODE_TYPES = {
             builtin: true,
             description: 'Ticks children in order until one succeeds. Succeeds if any child succeeds, fails if all children fail.',
             properties: [
-                { name: 'memory', type: 'boolean', default: 'false', description: 'Remember progress after a halt' }
+                {name: 'memory', type: 'boolean', default: 'false', description: 'Remember progress after a halt'}
             ],
             maxChildren: null,
             canBeChildless: false
@@ -76,8 +76,18 @@ export const NODE_TYPES = {
             builtin: true,
             description: 'Executes all children concurrently. Succeeds when success_threshold children succeed. Fails when failure_threshold children fail.',
             properties: [
-                { name: 'success_threshold', type: 'number', default: '1', description: 'Minimum successful children to return success' },
-                { name: 'failure_threshold', type: 'number', default: '1', description: 'Minimum failed children to return failure' }
+                {
+                    name: 'success_threshold',
+                    type: 'number',
+                    default: '1',
+                    description: 'Minimum successful children to return success'
+                },
+                {
+                    name: 'failure_threshold',
+                    type: 'number',
+                    default: '1',
+                    description: 'Minimum failed children to return failure'
+                }
             ],
             maxChildren: null,
             canBeChildless: false
@@ -126,7 +136,7 @@ export const NODE_TYPES = {
             builtin: true,
             description: 'Repeats its child a specified number of times or until the child returns FAILURE',
             properties: [
-                { name: 'num_cycles', type: 'number', default: '1', description: 'Number of repetitions' }
+                {name: 'num_cycles', type: 'number', default: '1', description: 'Number of repetitions'}
             ],
             maxChildren: 1,
             canBeChildless: false
@@ -137,7 +147,7 @@ export const NODE_TYPES = {
             builtin: true,
             description: 'Retries its child a specified number of times until it succeeds',
             properties: [
-                { name: 'num_attempts', type: 'number', default: '1', description: 'Number of attempts' }
+                {name: 'num_attempts', type: 'number', default: '1', description: 'Number of attempts'}
             ],
             maxChildren: 1,
             canBeChildless: false
@@ -148,7 +158,7 @@ export const NODE_TYPES = {
             builtin: true,
             description: 'Interrupts its child if it doesn\'t complete within the timeout',
             properties: [
-                { name: 'msec', type: 'number', default: '1000', description: 'Timeout in milliseconds' }
+                {name: 'msec', type: 'number', default: '1000', description: 'Timeout in milliseconds'}
             ],
             maxChildren: 1,
             canBeChildless: false
@@ -159,7 +169,7 @@ export const NODE_TYPES = {
             builtin: true,
             description: 'Waits the specified time before ticking its child',
             properties: [
-                { name: 'delay_ms', type: 'number', default: '100', description: 'Delay in milliseconds' }
+                {name: 'delay_ms', type: 'number', default: '100', description: 'Delay in milliseconds'}
             ],
             maxChildren: 1,
             canBeChildless: false
@@ -170,8 +180,13 @@ export const NODE_TYPES = {
             builtin: true,
             description: 'Runs the child only once, caching the result for later ticks',
             properties: [
-                { name: 'reset_after', type: 'boolean', default: 'false', description: 'Reset the cached result after x seconds' },
-                { name: 'after_seconds', type: 'number', default: '0', description: 'Seconds after which to reset cache' }
+                {
+                    name: 'reset_after',
+                    type: 'boolean',
+                    default: 'false',
+                    description: 'Reset the cached result after x seconds'
+                },
+                {name: 'after_seconds', type: 'number', default: '0', description: 'Seconds after which to reset cache'}
             ],
             maxChildren: 1,
             canBeChildless: false
@@ -184,8 +199,8 @@ export const NODE_TYPES = {
             builtin: true,
             description: 'Generic action node. Calls a registered action in the BehaviorTree.CPP executor.',
             properties: [
-                { name: 'action_name', type: 'string', default: '', description: 'Name of the action to execute' },
-                { name: 'sync', type: 'boolean', default: 'true', description: 'Whether the action is synchronous' }
+                {name: 'action_name', type: 'string', default: '', description: 'Name of the action to execute'},
+                {name: 'sync', type: 'boolean', default: 'true', description: 'Whether the action is synchronous'}
             ],
             maxChildren: 0, // No children allowed
             canBeChildless: true
@@ -196,9 +211,19 @@ export const NODE_TYPES = {
             builtin: true,
             description: 'Sets a value in the blackboard. Can use different output_key and input_key.',
             properties: [
-                { name: 'output_key', type: 'string', default: '', description: 'Blackboard key to set' },
-                { name: 'input_key', type: 'string', default: '', description: 'Blackboard key to get the value from (optional)' },
-                { name: 'value', type: 'string', default: '', description: 'Value to set (used only if input_key is empty)' }
+                {name: 'output_key', type: 'string', default: '', description: 'Blackboard key to set'},
+                {
+                    name: 'input_key',
+                    type: 'string',
+                    default: '',
+                    description: 'Blackboard key to get the value from (optional)'
+                },
+                {
+                    name: 'value',
+                    type: 'string',
+                    default: '',
+                    description: 'Value to set (used only if input_key is empty)'
+                }
             ],
             maxChildren: 0,
             canBeChildless: true
@@ -209,7 +234,7 @@ export const NODE_TYPES = {
             builtin: true,
             description: 'Sleep for a specified duration',
             properties: [
-                { name: 'msec', type: 'number', default: '1000', description: 'Duration in milliseconds' }
+                {name: 'msec', type: 'number', default: '1000', description: 'Duration in milliseconds'}
             ],
             maxChildren: 0,
             canBeChildless: true
@@ -222,7 +247,7 @@ export const NODE_TYPES = {
             builtin: true,
             description: 'Generic condition node. Evaluates an expression or calls a registered condition in BehaviorTree.CPP.',
             properties: [
-                { name: 'expression', type: 'string', default: '', description: 'Boolean expression to evaluate' }
+                {name: 'expression', type: 'string', default: '', description: 'Boolean expression to evaluate'}
             ],
             maxChildren: 0, // No children allowed
             canBeChildless: true
@@ -233,9 +258,14 @@ export const NODE_TYPES = {
             builtin: true,
             description: 'Checks a value in the blackboard against a specified value or expression',
             properties: [
-                { name: 'key', type: 'string', default: '', description: 'Blackboard key to check' },
-                { name: 'expected', type: 'string', default: '', description: 'Expected value or expression' },
-                { name: 'comparison', type: 'string', default: '==', description: 'Comparison operator (==, !=, >, >=, <, <=)' }
+                {name: 'key', type: 'string', default: '', description: 'Blackboard key to check'},
+                {name: 'expected', type: 'string', default: '', description: 'Expected value or expression'},
+                {
+                    name: 'comparison',
+                    type: 'string',
+                    default: '==',
+                    description: 'Comparison operator (==, !=, >, >=, <, <=)'
+                }
             ],
             maxChildren: 0,
             canBeChildless: true
@@ -246,7 +276,7 @@ export const NODE_TYPES = {
             builtin: true,
             description: 'Returns FAILURE after a specified timeout',
             properties: [
-                { name: 'msec', type: 'number', default: '1000', description: 'Timeout in milliseconds' }
+                {name: 'msec', type: 'number', default: '1000', description: 'Timeout in milliseconds'}
             ],
             maxChildren: 0,
             canBeChildless: true
@@ -259,7 +289,7 @@ export const NODE_TYPES = {
             builtin: true,
             description: 'Includes another behavior tree as a subtree',
             properties: [
-                { name: 'tree_id', type: 'string', default: '', description: 'ID of the subtree' }
+                {name: 'tree_id', type: 'string', default: '', description: 'ID of the subtree'}
             ],
             maxChildren: 0,
             canBeChildless: true
@@ -273,32 +303,32 @@ export const NODE_TYPES = {
  * @returns {Array} - Array of default properties
  */
 export function getDefaultPropertiesForCategory(category) {
-    switch(category) {
+    switch (category) {
         case 'control':
             return [
-                { name: 'success_threshold', type: 'number', default: '1', description: 'Success threshold' },
-                { name: 'failure_threshold', type: 'number', default: '1', description: 'Failure threshold' }
+                {name: 'success_threshold', type: 'number', default: '1', description: 'Success threshold'},
+                {name: 'failure_threshold', type: 'number', default: '1', description: 'Failure threshold'}
             ];
 
         case 'decorator':
             return [
-                { name: 'param', type: 'string', default: '', description: 'Parameter' }
+                {name: 'param', type: 'string', default: '', description: 'Parameter'}
             ];
 
         case 'action':
             return [
-                { name: 'action_name', type: 'string', default: '', description: 'Action name' },
-                { name: 'sync', type: 'boolean', default: 'true', description: 'Whether the action is synchronous' }
+                {name: 'action_name', type: 'string', default: '', description: 'Action name'},
+                {name: 'sync', type: 'boolean', default: 'true', description: 'Whether the action is synchronous'}
             ];
 
         case 'condition':
             return [
-                { name: 'expression', type: 'string', default: '', description: 'Expression' }
+                {name: 'expression', type: 'string', default: '', description: 'Expression'}
             ];
 
         case 'subtree':
             return [
-                { name: 'tree_id', type: 'string', default: '', description: 'ID of the subtree' }
+                {name: 'tree_id', type: 'string', default: '', description: 'ID of the subtree'}
             ];
 
         default:
@@ -312,7 +342,7 @@ export function getDefaultPropertiesForCategory(category) {
  * @returns {Object} - Object with maxChildren and canBeChildless properties
  */
 export function getDefaultConstraintsForCategory(category) {
-    switch(category) {
+    switch (category) {
         case 'control':
             return {
                 maxChildren: null, // Unlimited
@@ -354,29 +384,32 @@ export function isConnectionValid(sourceNode, targetNode, connections) {
     const targetNodeDef = getNodeDefinition(targetNode.type, targetNode.category);
 
     if (!sourceNodeDef || !targetNodeDef) {
-        return { valid: false, message: 'Invalid node type' };
+        return {valid: false, message: 'Invalid node type'};
     }
 
     // Leaf nodes can't have children
     if (sourceNodeDef.maxChildren === 0) {
-        return { valid: false, message: `${sourceNodeDef.name} nodes can't have children` };
+        return {valid: false, message: `${sourceNodeDef.name} nodes can't have children`};
     }
 
     // Check if source node already has max children
     if (sourceNodeDef.maxChildren !== null) {
         const childCount = connections.filter(conn => conn.source === sourceNode.id).length;
         if (childCount >= sourceNodeDef.maxChildren) {
-            return { valid: false, message: `${sourceNodeDef.name} nodes can have at most ${sourceNodeDef.maxChildren} ${sourceNodeDef.maxChildren === 1 ? 'child' : 'children'}` };
+            return {
+                valid: false,
+                message: `${sourceNodeDef.name} nodes can have at most ${sourceNodeDef.maxChildren} ${sourceNodeDef.maxChildren === 1 ? 'child' : 'children'}`
+            };
         }
     }
 
     // Check if target already has a parent
     const targetParents = connections.filter(conn => conn.target === targetNode.id);
     if (targetParents.length > 0) {
-        return { valid: false, message: 'Node already has a parent' };
+        return {valid: false, message: 'Node already has a parent'};
     }
 
-    return { valid: true, message: '' };
+    return {valid: true, message: ''};
 }
 
 /**

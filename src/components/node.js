@@ -3,9 +3,9 @@
  * Manages node UI elements and interactions
  */
 
-import { editorEvents, EDITOR_EVENTS } from '../modules/events.js';
-import { logger } from '../index.js';
-import { worldToScreen, screenToWorld } from '../modules/renderer.js';
+import {editorEvents, EDITOR_EVENTS} from '../modules/events.js';
+import {logger} from '../index.js';
+import {worldToScreen, screenToWorld} from '../modules/renderer.js';
 import {NODE_TYPES, getDefaultPropertiesForCategory, getDefaultConstraintsForCategory} from '../data/node-types.js';
 
 export function initNodeComponent(elements, state, renderer) {
@@ -19,7 +19,7 @@ export function initNodeComponent(elements, state, renderer) {
      * @returns {HTMLElement} - Created node element
      */
     function createNodeElement(node) {
-        const { canvas } = elements;
+        const {canvas} = elements;
         if (!canvas) return null;
 
         const selectedNodes = stateManager.getSelectedNodes();

@@ -3,8 +3,8 @@
  * Manages optimized rendering using requestAnimationFrame
  */
 
-import { editorEvents, EDITOR_EVENTS } from './events.js';
-import { logger } from '../index.js';
+import {editorEvents, EDITOR_EVENTS} from './events.js';
+import {logger} from '../index.js';
 
 export function initRenderer(elements, state) {
     const stateManager = state;
@@ -101,8 +101,8 @@ export function initRenderer(elements, state) {
      * Apply viewport transformation to canvas
      */
     function applyViewportTransform() {
-        const { scale, offsetX, offsetY } = stateManager.getViewport();
-        const { canvas } = elements;
+        const {scale, offsetX, offsetY} = stateManager.getViewport();
+        const {canvas} = elements;
 
         // Apply transform with hardware acceleration
         canvas.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
@@ -113,8 +113,8 @@ export function initRenderer(elements, state) {
      * Update the visible area for virtual scrolling
      */
     function updateVisibleArea() {
-        const { canvas } = elements;
-        const { scale, offsetX, offsetY } = stateManager.getViewport();
+        const {canvas} = elements;
+        const {scale, offsetX, offsetY} = stateManager.getViewport();
 
         // Calculate visible area in world coordinates with padding
         const canvasRect = canvas.getBoundingClientRect();
@@ -139,7 +139,7 @@ export function initRenderer(elements, state) {
      * Render the grid
      */
     function renderGrid() {
-        const { gridCanvas } = elements;
+        const {gridCanvas} = elements;
         const grid = stateManager.getGrid();
         const viewport = stateManager.getViewport();
 
@@ -275,7 +275,7 @@ export function initRenderer(elements, state) {
      * @param {Object} node - Node data
      */
     function createNodeElement(node) {
-        const { canvas } = elements;
+        const {canvas} = elements;
         const selectedNodes = stateManager.getSelectedNodes();
         const monitorNodeStates = stateManager.getState().monitor.nodeStates;
 
@@ -354,7 +354,7 @@ export function initRenderer(elements, state) {
      * Render all connections
      */
     function renderAllConnections() {
-        const { connectionsLayer } = elements;
+        const {connectionsLayer} = elements;
         const connections = stateManager.getConnections();
 
         // Clear existing connections
@@ -397,7 +397,7 @@ export function initRenderer(elements, state) {
      * @param {Object} connection - Connection data
      */
     function createConnectionElement(connection) {
-        const { connectionsLayer } = elements;
+        const {connectionsLayer} = elements;
         const nodes = stateManager.getNodes();
 
         // Find source and target nodes
@@ -449,7 +449,7 @@ export function initRenderer(elements, state) {
      * Render the pending connection (while creating a new connection)
      */
     function renderPendingConnection() {
-        const { activeConnectionLayer } = elements;
+        const {activeConnectionLayer} = elements;
         const pendingConnection = stateManager.getState().pendingConnection;
         const nodes = stateManager.getNodes();
         const mousePosition = stateManager.getState().mousePosition;
@@ -494,7 +494,7 @@ export function initRenderer(elements, state) {
      * Render the minimap
      */
     function renderMinimap() {
-        const { minimap } = elements;
+        const {minimap} = elements;
         if (!minimap) return;
 
         const nodes = stateManager.getNodes();
@@ -571,7 +571,7 @@ export function initRenderer(elements, state) {
      */
     function calculateNodesBounds(nodes) {
         if (nodes.length === 0) {
-            return { minX: -500, minY: -500, maxX: 500, maxY: 500, width: 1000, height: 1000 };
+            return {minX: -500, minY: -500, maxX: 500, maxY: 500, width: 1000, height: 1000};
         }
 
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -626,7 +626,7 @@ export function initRenderer(elements, state) {
      * Update canvas dimensions on resize
      */
     function updateCanvasDimensions() {
-        const { canvas, gridCanvas, connectionsLayer, activeConnectionLayer } = elements;
+        const {canvas, gridCanvas, connectionsLayer, activeConnectionLayer} = elements;
 
         // Get container size
         const container = canvas.parentElement;

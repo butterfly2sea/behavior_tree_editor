@@ -3,8 +3,8 @@
  * Handles the toolbar UI and actions
  */
 
-import { editorEvents, EDITOR_EVENTS } from '../modules/events.js';
-import { logger } from '../index.js';
+import {editorEvents, EDITOR_EVENTS} from '../modules/events.js';
+import {logger} from '../index.js';
 
 export function initToolbar(elements, state, renderer) {
     const stateManager = state;

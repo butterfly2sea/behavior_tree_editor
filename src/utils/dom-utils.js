@@ -3,7 +3,7 @@
  * Helper functions for DOM manipulation
  */
 
-import { logger } from '../index.js';
+import {logger} from '../index.js';
 
 /**
  * Create an HTML element with attributes, properties, and children
@@ -154,23 +154,23 @@ export function createTooltip(targetElement, text, options = {}) {
 
         switch (position) {
             case 'top':
-                tooltip.style.left = `${targetRect.left + targetRect.width/2 - tooltip.offsetWidth/2}px`;
+                tooltip.style.left = `${targetRect.left + targetRect.width / 2 - tooltip.offsetWidth / 2}px`;
                 tooltip.style.top = `${targetRect.top - tooltip.offsetHeight - 5}px`;
                 break;
 
             case 'bottom':
-                tooltip.style.left = `${targetRect.left + targetRect.width/2 - tooltip.offsetWidth/2}px`;
+                tooltip.style.left = `${targetRect.left + targetRect.width / 2 - tooltip.offsetWidth / 2}px`;
                 tooltip.style.top = `${targetRect.bottom + 5}px`;
                 break;
 
             case 'left':
                 tooltip.style.left = `${targetRect.left - tooltip.offsetWidth - 5}px`;
-                tooltip.style.top = `${targetRect.top + targetRect.height/2 - tooltip.offsetHeight/2}px`;
+                tooltip.style.top = `${targetRect.top + targetRect.height / 2 - tooltip.offsetHeight / 2}px`;
                 break;
 
             case 'right':
                 tooltip.style.left = `${targetRect.right + 5}px`;
-                tooltip.style.top = `${targetRect.top + targetRect.height/2 - tooltip.offsetHeight/2}px`;
+                tooltip.style.top = `${targetRect.top + targetRect.height / 2 - tooltip.offsetHeight / 2}px`;
                 break;
         }
     }
@@ -244,8 +244,8 @@ export function createNotification(message, type = 'info', duration = 3000) {
             marginBottom: '10px',
             backgroundColor: 'white',
             borderLeft: type === 'info' ? '4px solid #2196F3' :
-                        type === 'success' ? '4px solid #4CAF50' :
-                        type === 'warning' ? '4px solid #FF9800' : '4px solid #F44336',
+                type === 'success' ? '4px solid #4CAF50' :
+                    type === 'warning' ? '4px solid #FF9800' : '4px solid #F44336',
             boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
             borderRadius: '4px',
             opacity: '0',
