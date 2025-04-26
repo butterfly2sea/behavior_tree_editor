@@ -409,20 +409,20 @@ export function initNodeComponent(elements, state, renderer) {
     function updateNodeElement(nodeEl, node) {
         if (!nodeEl) return;
 
-        // Update position
+        // 更新位置
         if (node.x !== undefined) nodeEl.style.left = `${node.x}px`;
         if (node.y !== undefined) nodeEl.style.top = `${node.y}px`;
 
-        // Update title
+        // 更新标题
         if (node.name) {
             const titleEl = nodeEl.querySelector('.node-title');
             if (titleEl) titleEl.textContent = node.name;
         }
 
-        // Update selection state
+        // 更新选择状态
         updateNodeSelectionState(nodeEl, node.id);
 
-        // Update port visibility
+        // 更新端口可见性
         updatePortVisibility(nodeEl,
             stateManager.getNodes().find(n => n.id === node.id) || node);
     }

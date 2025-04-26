@@ -751,38 +751,38 @@ function handleCanvasDrop(e, elements, state, renderer) {
     const {canvas} = elements;
     const stateManager = state;
 
-    // Get drop coordinates
+    // 获取鼠标坐标
     const rect = canvas.getBoundingClientRect();
     const clientX = e.clientX - rect.left;
     const clientY = e.clientY - rect.top;
 
-    // Convert to world coordinates
+    // 转换为世界坐标
     const {x, y} = screenToWorldCoordinates(clientX, clientY, stateManager.getViewport());
 
-    // Get drop data
+    // 从拖拽数据中获取信息
     const nodeType = e.dataTransfer.getData('nodeType');
     const nodeCategory = e.dataTransfer.getData('nodeCategory');
     const nodeId = e.dataTransfer.getData('nodeId');
 
     if (nodeId) {
-        // Moving existing node(s)
+        // 移动现有节点
         const selectedNodes = stateManager.getSelectedNodes();
 
         if (selectedNodes.includes(nodeId)) {
-            // Move all selected nodes
+            // 移动所有选中的节点
             const selectedNode = stateManager.getNodes().find(n => n.id === nodeId);
             if (selectedNode) {
-                const deltaX = x - selectedNode.x - 75; // Center the node horizontally
-                const deltaY = y - selectedNode.y - 20; // Adjust for node height
+                const deltaX = x - selectedNode.x - 75; // 水平居中
+                const deltaY = y - selectedNode.y - 20; // 调整节点高度
 
-                // Move all selected nodes
+                // 移动所有选中的节点
                 selectedNodes.forEach(id => {
                     const node = stateManager.getNodes().find(n => n.id === id);
                     if (node) {
                         let newX = node.x + deltaX;
                         let newY = node.y + deltaY;
 
-                        // Apply grid snapping if enabled
+                        // 应用网格对齐
                         if (stateManager.getGrid().snap) {
                             newX = Math.round(newX / stateManager.getGrid().size) * stateManager.getGrid().size;
                             newY = Math.round(newY / stateManager.getGrid().size) * stateManager.getGrid().size;
@@ -795,13 +795,13 @@ function handleCanvasDrop(e, elements, state, renderer) {
                 editorEvents.emit(EDITOR_EVENTS.NODE_MOVED, selectedNodes);
             }
         } else {
-            // Move just the dragged node
+            // 仅移动拖拽的节点
             const node = stateManager.getNodes().find(n => n.id === nodeId);
             if (node) {
-                let newX = x - 75; // Center the node horizontally
-                let newY = y - 20; // Adjust for node height
+                let newX = x - 75; // 水平居中
+                let newY = y - 20; // 调整节点高度
 
-                // Apply grid snapping if enabled
+                // 应用网格对齐
                 if (stateManager.getGrid().snap) {
                     newX = Math.round(newX / stateManager.getGrid().size) * stateManager.getGrid().size;
                     newY = Math.round(newY / stateManager.getGrid().size) * stateManager.getGrid().size;
@@ -812,12 +812,11 @@ function handleCanvasDrop(e, elements, state, renderer) {
             }
         }
     } else if (nodeType && nodeCategory) {
-        // TODO: Move to nodes.js - Creating new node from type
-        // This is temporary implementation
-        const newNodeX = x - 75; // Center the node horizontally
-        const newNodeY = y - 20; // Adjust for node height
+        // 创建新节点
+        const newNodeX = x - 75; // 水平居中
+        const newNodeY = y - 20; // 调整节点高度
 
-        // Apply grid snapping if enabled
+        // 应用网格对齐
         const snappedX = stateManager.getGrid().snap
             ? Math.round(newNodeX / stateManager.getGrid().size) * stateManager.getGrid().size
             : newNodeX;
@@ -825,7 +824,7 @@ function handleCanvasDrop(e, elements, state, renderer) {
             ? Math.round(newNodeY / stateManager.getGrid().size) * stateManager.getGrid().size
             : newNodeY;
 
-        // Emit event to create node
+        // 发出创建节点事件
         editorEvents.emit(EDITOR_EVENTS.NODE_CREATION_REQUESTED, {
             type: nodeType,
             category: nodeCategory,
@@ -834,8 +833,8 @@ function handleCanvasDrop(e, elements, state, renderer) {
         });
     }
 
-    // Request render update
     renderer.requestRender();
+    // 添加这一行确保请求重新渲染
 }
 
 // Find a node at a specific point in world coordinates
