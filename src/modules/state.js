@@ -151,7 +151,23 @@ export function initState() {
             if (node) {
                 // 应用更新
                 Object.assign(node, updates);
-                logger.debug('Node updated:', nodeId);
+
+                // 添加到更新节点列表
+                state.rendering.updatedNodeIds.add(nodeId);
+
+                // 如果更新了位置（x或y），则更新与该节点相连的所有连线
+                if (updates.x !== undefined || updates.y !== undefined) {
+                    // 找到所有与该节点相连的连接
+                    const relatedConnections = state.connections.filter(
+                        conn => conn.source === nodeId || conn.target === nodeId
+                    );
+
+                    // 将这些连接添加到更新列表
+                    relatedConnections.forEach(conn => {
+                        state.rendering.updatedConnectionIds.add(conn.id);
+                    });
+                }
+
                 editorEvents.emit(EDITOR_EVENTS.NODE_UPDATED, node);
                 return true;
             }
