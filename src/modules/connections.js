@@ -3,6 +3,7 @@
  */
 import {eventBus, EVENTS} from '../core/events.js';
 import {logger} from '../utils/logger.js';
+import {getNodeDefinition} from '../data/node-types.js';
 
 export function initConnections(elements, state, renderer) {
     const stateManager = state;
@@ -142,7 +143,7 @@ export function initConnections(elements, state, renderer) {
         if (!sourceNode || !targetNode) {
             return {
                 valid: false,
-                message: 'Source or target node not found'
+                message: '源节点或目标节点未选中'
             };
         }
 
@@ -150,7 +151,7 @@ export function initConnections(elements, state, renderer) {
         if (sourceId === targetId) {
             return {
                 valid: false,
-                message: 'Cannot connect a node to itself'
+                message: '不能连接到自身'
             };
         }
 
@@ -159,19 +160,12 @@ export function initConnections(elements, state, renderer) {
         if (targetParents.length > 0) {
             return {
                 valid: false,
-                message: 'Target node already has a parent'
+                message: '目标节点已有一个源节点'
             };
         }
 
-        // Get node type definitions to check constraints
-        const {getNodeTypeDefinition} = window; // From node-types.js
-
-        if (!getNodeTypeDefinition) {
-            return {valid: true, message: ''}; // Skip constraint checks if function not available
-        }
-
-        const sourceNodeDef = getNodeTypeDefinition(sourceNode.type, sourceNode.category);
-        const targetNodeDef = getNodeTypeDefinition(targetNode.type, targetNode.category);
+        const sourceNodeDef = getNodeDefinition(sourceNode.type, sourceNode.category);
+        const targetNodeDef = getNodeDefinition(targetNode.type, targetNode.category);
 
         if (!sourceNodeDef || !targetNodeDef) {
             return {
@@ -184,7 +178,7 @@ export function initConnections(elements, state, renderer) {
         if (sourceNodeDef.maxChildren === 0) {
             return {
                 valid: false,
-                message: `${sourceNodeDef.name} nodes cannot have children`
+                message: `${sourceNodeDef.name} 节点不能有子节点`
             };
         }
 
@@ -333,6 +327,12 @@ export function initConnections(elements, state, renderer) {
 
                 // If no pending connection, start one
                 if (!pendingConnection) {
+                    const rect = elements.canvas.getBoundingClientRect();
+                    const mouseX = e.clientX - rect.left;
+                    const mouseY = e.clientY - rect.top;
+                    const worldPos = renderer.screenToWorld(mouseX, mouseY);
+
+                    stateManager.setMousePosition(worldPos.x, worldPos.y);
                     startPendingConnection(nodeId, portType);
                 }
                 // Otherwise complete the connection
@@ -351,10 +351,10 @@ export function initConnections(elements, state, renderer) {
 
         // Update pending connection on mouse move
         document.addEventListener('mousemove', (e) => {
-            // Only update if there's a pending connection
+            // 只有在有待处理连接时才更新
             if (!stateManager.getState().pendingConnection) return;
 
-            // Get mouse position in world coordinates
+            // 获取画布相对于视窗的位置
             const rect = elements.canvas.getBoundingClientRect();
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
