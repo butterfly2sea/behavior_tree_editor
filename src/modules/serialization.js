@@ -1,30 +1,21 @@
 /**
- * Serialization module
- * Handles saving, loading, and exporting behavior trees
+ * Serialization Module - Handles saving, loading, and exporting
  */
-
-import {editorEvents, EDITOR_EVENTS} from './events.js';
-import {logger} from '../index.js';
-import {showErrorToUser} from '../index.js';
+import {eventBus, EVENTS} from '../core/events.js';
+import {logger} from '../utils/logger.js';
+import {showErrorToast} from '../index.js';
 
 export function initSerialization(elements, state) {
     const stateManager = state;
-
-    logger.debug('Initializing serialization module');
-
-    // Set up event listeners
-    setupEventListeners();
 
     /**
      * Save the current tree to a JSON file
      */
     function saveTree() {
-        logger.debug('Saving behavior tree');
-
-        // Validate the tree has exactly one root node
+        // Validate tree structure
         const validation = validateRootNodes();
         if (!validation.isValid) {
-            showErrorToUser(validation.message);
+            showErrorToast(validation.message);
             return;
         }
 
@@ -38,23 +29,21 @@ export function initSerialization(elements, state) {
                 grid: stateManager.getGrid()
             };
 
-            // Create a Blob from the JSON data
+            // Create a Blob and download
             const blob = new Blob([JSON.stringify(treeData, null, 2)], {type: 'application/json'});
             const url = URL.createObjectURL(blob);
 
-            // Create a download link
             const a = document.createElement('a');
             a.href = url;
             a.download = 'behavior_tree.json';
             a.click();
 
-            // Clean up
             URL.revokeObjectURL(url);
 
             logger.info('Behavior tree saved successfully');
         } catch (error) {
             logger.error('Error saving tree:', error);
-            showErrorToUser('Failed to save tree: ' + error.message);
+            showErrorToast('Failed to save tree: ' + error.message);
         }
     }
 
@@ -62,10 +51,7 @@ export function initSerialization(elements, state) {
      * Load a tree from a JSON file
      */
     function loadTree() {
-        logger.debug('Loading behavior tree');
-
         try {
-            // Create a file input element
             const input = document.createElement('input');
             input.type = 'file';
             input.accept = '.json';
@@ -79,70 +65,76 @@ export function initSerialization(elements, state) {
                     try {
                         const data = JSON.parse(e.target.result);
 
-                        // Validate the imported data
+                        // Validate data
                         if (!isValidTreeData(data)) {
                             throw new Error('Invalid behavior tree file format');
                         }
 
-                        // Load custom node types
-                        let customNodeTypes = [];
-                        if (data.customNodeTypes && Array.isArray(data.customNodeTypes)) {
-                            customNodeTypes = data.customNodeTypes;
-                        }
-
-                        // Load collapsed categories state
-                        let collapsedCategories = {};
-                        if (data.collapsedCategories) {
-                            collapsedCategories = data.collapsedCategories;
-                        }
-
-                        // Load grid settings
-                        let grid = stateManager.getGrid();
-                        if (data.grid) {
-                            grid = data.grid;
-                        }
-
-                        // Prepare new state
+                        // Prepare the state to load
                         const newState = {
-                            ...stateManager.getState(),
                             nodes: data.nodes || [],
                             connections: data.connections || [],
-                            customNodeTypes,
-                            collapsedCategories,
-                            grid,
+                            customNodeTypes: data.customNodeTypes || [],
+                            collapsedCategories: data.collapsedCategories || {},
+                            grid: data.grid || stateManager.getGrid(),
+
+                            // Reset these values
                             selectedNodes: [],
-                            activeConnection: null,
+                            selectedConnection: null,
                             pendingConnection: null,
-                            selectedConnection: null
+
+                            // Keep current viewport
+                            viewport: stateManager.getViewport(),
+
+                            // ID counters
+                            idCounters: {
+                                nodes: calculateNextNodeId(data.nodes),
+                                connections: calculateNextConnectionId(data.connections)
+                            }
                         };
 
-                        // Update node counter to avoid ID collisions
-                        const highestId = newState.nodes.reduce((max, node) => {
-                            const idNum = parseInt(node.id.replace('node_', ''));
-                            return isNaN(idNum) ? max : Math.max(max, idNum);
-                        }, -1);
-
-                        newState.nodeCounter = highestId + 1;
-
-                        // Load the new state
+                        // Load state
                         stateManager.loadState(newState);
 
                         logger.info('Behavior tree loaded successfully');
                     } catch (error) {
                         logger.error('Error parsing tree file:', error);
-                        showErrorToUser('Error parsing tree file: ' + error.message);
+                        showErrorToast('Error parsing tree file: ' + error.message);
                     }
                 };
 
                 reader.readAsText(file);
             };
 
-            // Trigger file selection dialog
             input.click();
         } catch (error) {
             logger.error('Error loading tree:', error);
-            showErrorToUser('Failed to load tree: ' + error.message);
+            showErrorToast('Failed to load tree: ' + error.message);
         }
+    }
+
+    /**
+     * Calculate next node ID counter
+     */
+    function calculateNextNodeId(nodes) {
+        if (!nodes || nodes.length === 0) return 0;
+
+        return nodes.reduce((max, node) => {
+            const idNum = parseInt(node.id.replace('node_', ''));
+            return isNaN(idNum) ? max : Math.max(max, idNum + 1);
+        }, 0);
+    }
+
+    /**
+     * Calculate next connection ID counter
+     */
+    function calculateNextConnectionId(connections) {
+        if (!connections || connections.length === 0) return 0;
+
+        return connections.reduce((max, conn) => {
+            const idNum = parseInt(conn.id.replace('conn_', ''));
+            return isNaN(idNum) ? max : Math.max(max, idNum + 1);
+        }, 0);
     }
 
     /**
@@ -159,12 +151,10 @@ export function initSerialization(elements, state) {
      * Export the behavior tree to XML format
      */
     function exportXml() {
-        logger.debug('Exporting behavior tree to XML');
-
-        // Validate the tree has exactly one root node
+        // Validate the tree
         const validation = validateRootNodes();
         if (!validation.isValid) {
-            showErrorToUser(validation.message);
+            showErrorToast(validation.message);
             return;
         }
 
@@ -186,41 +176,12 @@ export function initSerialization(elements, state) {
             logger.info('Behavior tree exported to XML');
         } catch (error) {
             logger.error('Error exporting XML:', error);
-            showErrorToUser('Failed to export XML: ' + error.message);
+            showErrorToast('Failed to export XML: ' + error.message);
         }
     }
 
     /**
-     * Copy XML content to clipboard
-     */
-    function copyXmlToClipboard() {
-        const {xmlContent} = elements;
-
-        if (!xmlContent) return;
-
-        const textToCopy = xmlContent.textContent;
-
-        navigator.clipboard.writeText(textToCopy)
-            .then(() => {
-                // Success feedback
-                const copyXmlBtn = document.getElementById('copy-xml-btn');
-                if (copyXmlBtn) {
-                    const originalText = copyXmlBtn.textContent;
-                    copyXmlBtn.textContent = 'Copied!';
-                    setTimeout(() => {
-                        copyXmlBtn.textContent = originalText;
-                    }, 2000);
-                }
-            })
-            .catch(err => {
-                logger.error('Failed to copy text:', err);
-                showErrorToUser('Failed to copy XML to clipboard');
-            });
-    }
-
-    /**
      * Validate that the tree has exactly one root node
-     * @returns {Object} - Validation result {isValid, message}
      */
     function validateRootNodes() {
         const nodes = stateManager.getNodes();
@@ -254,7 +215,6 @@ export function initSerialization(elements, state) {
 
     /**
      * Build tree hierarchy for XML export
-     * @returns {Object|null} - Tree hierarchy or null if invalid
      */
     function buildTreeHierarchy() {
         const nodes = stateManager.getNodes();
@@ -264,46 +224,35 @@ export function initSerialization(elements, state) {
         const targetIds = connections.map(c => c.target);
         const rootNodes = nodes.filter(node => !targetIds.includes(node.id));
 
-        if (rootNodes.length === 0) {
-            return null;
-        }
+        if (rootNodes.length === 0) return null;
 
         // Select the first root as the main root
         const root = rootNodes[0];
 
-        // Recursively build the tree
+        // Build hierarchy recursively
+        function buildNodeHierarchy(nodeId) {
+            const node = nodes.find(n => n.id === nodeId);
+            if (!node) return null;
+
+            // Find child connections
+            const childConnections = connections.filter(c => c.source === nodeId);
+
+            // Build child hierarchies
+            const children = childConnections
+                .map(conn => buildNodeHierarchy(conn.target))
+                .filter(Boolean);
+
+            return {
+                ...node,
+                children
+            };
+        }
+
         return buildNodeHierarchy(root.id);
     }
 
     /**
-     * Build hierarchy for a specific node
-     * @param {string} nodeId - Node ID
-     * @returns {Object|null} - Node hierarchy or null if invalid
-     */
-    function buildNodeHierarchy(nodeId) {
-        const nodes = stateManager.getNodes();
-        const connections = stateManager.getConnections();
-
-        const node = nodes.find(n => n.id === nodeId);
-        if (!node) return null;
-
-        // Find child connections
-        const childConnections = connections.filter(c => c.source === nodeId);
-
-        // Build child hierarchies
-        const children = childConnections
-            .map(conn => buildNodeHierarchy(conn.target))
-            .filter(Boolean);
-
-        return {
-            ...node,
-            children
-        };
-    }
-
-    /**
-     * Generate BehaviorTree.CPP compatible XML
-     * @returns {string} - XML string
+     * Generate XML for BehaviorTree.CPP
      */
     function generateBehaviorTreeXml() {
         const treeHierarchy = buildTreeHierarchy();
@@ -360,14 +309,12 @@ export function initSerialization(elements, state) {
 
     /**
      * Generate XML for a node and its children
-     * @param {Object} node - Node hierarchy
-     * @param {number} indent - Indentation level
-     * @returns {string} - XML string
      */
     function generateNodeXml(node, indent) {
         const spaces = ' '.repeat(indent);
         const hasChildren = node.children && node.children.length > 0;
 
+        // Generate parameters string
         let params = '';
         for (const [key, value] of Object.entries(node.properties)) {
             if (value) {
@@ -376,7 +323,7 @@ export function initSerialization(elements, state) {
         }
 
         if (!hasChildren) {
-            // Leaf node (Action or Condition typically)
+            // Leaf node
             return `${spaces}<${escapeXml(node.type)} name="${escapeXml(node.name)}"${params}/>\n`;
         } else {
             // Node with children
@@ -394,8 +341,6 @@ export function initSerialization(elements, state) {
 
     /**
      * Escape XML special characters
-     * @param {string} str - String to escape
-     * @returns {string} - Escaped string
      */
     function escapeXml(str) {
         if (str === undefined || str === null) return '';
@@ -409,35 +354,62 @@ export function initSerialization(elements, state) {
     }
 
     /**
+     * Copy XML content to clipboard
+     */
+    function copyXmlToClipboard() {
+        const {xmlContent} = elements;
+
+        if (!xmlContent) return;
+
+        const textToCopy = xmlContent.textContent;
+
+        navigator.clipboard.writeText(textToCopy)
+            .then(() => {
+                // Success feedback
+                const copyXmlBtn = document.getElementById('copy-xml-btn');
+                if (copyXmlBtn) {
+                    const originalText = copyXmlBtn.textContent;
+                    copyXmlBtn.textContent = 'Copied!';
+                    setTimeout(() => {
+                        copyXmlBtn.textContent = originalText;
+                    }, 2000);
+                }
+            })
+            .catch(err => {
+                logger.error('Failed to copy text:', err);
+                showErrorToast('Failed to copy XML to clipboard');
+            });
+    }
+
+    /**
      * Validate imported tree data
-     * @param {Object} data - Imported data
-     * @returns {boolean} - Whether data is valid
      */
     function isValidTreeData(data) {
         // Basic validation
         if (!data || typeof data !== 'object') return false;
-
-        // Check required properties
         if (!Array.isArray(data.nodes)) return false;
         if (!Array.isArray(data.connections)) return false;
 
-        // Check node format
-        for (const node of data.nodes) {
-            if (typeof node !== 'object') return false;
-            if (typeof node.id !== 'string') return false;
-            if (typeof node.type !== 'string') return false;
-            if (typeof node.category !== 'string') return false;
-            if (typeof node.x !== 'number') return false;
-            if (typeof node.y !== 'number') return false;
-            if (typeof node.properties !== 'object') return false;
-        }
+        // Basic format checks
+        try {
+            for (const node of data.nodes) {
+                if (typeof node !== 'object') return false;
+                if (typeof node.id !== 'string') return false;
+                if (typeof node.type !== 'string') return false;
+                if (typeof node.category !== 'string') return false;
+                if (typeof node.x !== 'number') return false;
+                if (typeof node.y !== 'number') return false;
+                if (typeof node.properties !== 'object') return false;
+            }
 
-        // Check connection format
-        for (const conn of data.connections) {
-            if (typeof conn !== 'object') return false;
-            if (typeof conn.id !== 'string') return false;
-            if (typeof conn.source !== 'string') return false;
-            if (typeof conn.target !== 'string') return false;
+            for (const conn of data.connections) {
+                if (typeof conn !== 'object') return false;
+                if (typeof conn.id !== 'string') return false;
+                if (typeof conn.source !== 'string') return false;
+                if (typeof conn.target !== 'string') return false;
+            }
+        } catch (e) {
+            return false;
         }
 
         return true;
@@ -447,37 +419,48 @@ export function initSerialization(elements, state) {
      * Set up event listeners
      */
     function setupEventListeners() {
-        // Listen for save/load/export events
-        editorEvents.on(EDITOR_EVENTS.SAVE_REQUESTED, saveTree);
-        editorEvents.on(EDITOR_EVENTS.LOAD_REQUESTED, loadTree);
-        editorEvents.on(EDITOR_EVENTS.EXPORT_XML_REQUESTED, exportXml);
-        editorEvents.on(EDITOR_EVENTS.CLEAR_REQUESTED, clearTree);
+        // Listen for toolbar actions
+        eventBus.on(EVENTS.TOOLBAR_ACTION, (data) => {
+            switch (data.action) {
+                case 'save':
+                    saveTree();
+                    break;
+                case 'load':
+                    loadTree();
+                    break;
+                case 'export-xml':
+                    exportXml();
+                    break;
+                case 'clear':
+                    clearTree();
+                    break;
+            }
+        });
 
-        // Add buttons event listeners
+        // Copy XML button
         const copyXmlBtn = document.getElementById('copy-xml-btn');
-        const closeXmlModal = document.getElementById('close-xml-modal');
-
         if (copyXmlBtn) {
             copyXmlBtn.addEventListener('click', copyXmlToClipboard);
         }
 
+        // Close XML modal
+        const closeXmlModal = document.getElementById('close-xml-modal');
         if (closeXmlModal) {
             closeXmlModal.addEventListener('click', () => {
-                const {xmlModal} = elements;
-                if (xmlModal) {
-                    xmlModal.style.display = 'none';
-                }
+                elements.xmlModal.style.display = 'none';
             });
         }
 
         // Close modal when clicking outside
         window.addEventListener('click', (e) => {
-            const {xmlModal} = elements;
-            if (xmlModal && e.target === xmlModal) {
-                xmlModal.style.display = 'none';
+            if (e.target === elements.xmlModal) {
+                elements.xmlModal.style.display = 'none';
             }
         });
     }
+
+    // Initialize
+    setupEventListeners();
 
     // Return public API
     return {

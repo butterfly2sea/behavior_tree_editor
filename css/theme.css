@@ -1,0 +1,54 @@
+:root {
+  /* Colors */
+  --color-primary: #2196f3;
+  --color-primary-dark: #1976d2;
+  --color-success: #4caf50;
+  --color-warning: #ff9800;
+  --color-error: #f44336;
+  --color-background: #ffffff;
+  --color-text: #333333;
+  --color-border: #dddddd;
+  --color-disabled: #cccccc;
+  --color-disabled-border: #999999;
+
+  /* Node type colors */
+  --color-control-bg: #e3f2fd;
+  --color-control-border: #90caf9;
+  --color-decorator-bg: #e8f5e9;
+  --color-decorator-border: #a5d6a7;
+  --color-action-bg: #fff3e0;
+  --color-action-border: #ffcc80;
+  --color-condition-bg: #f3e5f5;
+  --color-condition-border: #ce93d8;
+
+  /* Port colors */
+  --color-port-border: #666666;
+
+  /* Spacing */
+  --spacing-xs: 3px;
+  --spacing-sm: 5px;
+  --spacing-md: 10px;
+  --spacing-lg: 15px;
+  --spacing-xl: 20px;
+
+  /* Font sizes */
+  --font-size-xs: 10px;
+  --font-size-sm: 12px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 18px;
+
+  /* Component sizes */
+  --toolbar-height: 40px;
+  --header-height: 40px;
+  --dock-width: 250px;
+  --properties-width: 250px;
+  --minimap-size: 150px;
+
+  /* Node dimensions */
+  --node-width: 150px;
+  --node-height: 40px;
+
+  /* Animations */
+  --transition-speed: 0.2s;
+}

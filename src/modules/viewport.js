@@ -1,31 +1,25 @@
 /**
- * Viewport module
- * Manages viewport transformations for infinite canvas
+ * Viewport Module - Manages canvas viewport and zooming
  */
-
-import {editorEvents, EDITOR_EVENTS} from './events.js';
-import {logger} from '../index.js';
-import {screenToWorld} from './renderer.js';
+import {eventBus, EVENTS} from '../core/events.js';
+import {logger} from '../utils/logger.js';
+import {config} from '../core/config.js';
 
 export function initViewport(elements, state, renderer) {
     const stateManager = state;
 
-    logger.debug('Initializing viewport');
-
-    // Listen for events that affect the viewport
-    setupEventListeners();
-
     /**
      * Set viewport scale (zoom level)
-     * @param {number} newScale - New scale value
-     * @param {Object} focusPoint - Focus point for zooming (in screen coordinates)
      */
     function setScale(newScale, focusPoint = null) {
         const viewport = stateManager.getViewport();
         const oldScale = viewport.scale;
 
         // Clamp scale to min/max values
-        newScale = Math.min(Math.max(newScale, viewport.minScale), viewport.maxScale);
+        newScale = Math.min(
+            Math.max(newScale, viewport.minScale),
+            viewport.maxScale
+        );
 
         // If scale hasn't changed, do nothing
         if (newScale === oldScale) return;
@@ -35,20 +29,18 @@ export function initViewport(elements, state, renderer) {
             const {canvas} = elements;
 
             // Get focus point in world coordinates before zoom
-            const worldPointBefore = screenToWorld(
+            const worldPointBefore = renderer.screenToWorld(
                 focusPoint.x,
-                focusPoint.y,
-                viewport
+                focusPoint.y
             );
 
             // Update scale
             stateManager.updateViewport({scale: newScale});
 
             // Get focus point in world coordinates after zoom
-            const worldPointAfter = screenToWorld(
+            const worldPointAfter = renderer.screenToWorld(
                 focusPoint.x,
-                focusPoint.y,
-                {...viewport, scale: newScale}
+                focusPoint.y
             );
 
             // Adjust offset to keep focus point stationary
@@ -61,17 +53,12 @@ export function initViewport(elements, state, renderer) {
             stateManager.updateViewport({scale: newScale});
         }
 
-        // Notify about zoom change
-        editorEvents.emit(EDITOR_EVENTS.ZOOM_CHANGED, newScale);
-
         // Request render update
         renderer.requestRender(true);
     }
 
     /**
      * Zoom in by a factor
-     * @param {number} factor - Zoom factor (default: 1.2)
-     * @param {Object} focusPoint - Focus point for zooming
      */
     function zoomIn(factor = 1.2, focusPoint = null) {
         const viewport = stateManager.getViewport();
@@ -80,8 +67,6 @@ export function initViewport(elements, state, renderer) {
 
     /**
      * Zoom out by a factor
-     * @param {number} factor - Zoom factor (default: 1.2)
-     * @param {Object} focusPoint - Focus point for zooming
      */
     function zoomOut(factor = 1.2, focusPoint = null) {
         const viewport = stateManager.getViewport();
@@ -97,8 +82,6 @@ export function initViewport(elements, state, renderer) {
 
     /**
      * Pan the viewport
-     * @param {number} deltaX - X-axis pan amount
-     * @param {number} deltaY - Y-axis pan amount
      */
     function pan(deltaX, deltaY) {
         const viewport = stateManager.getViewport();
@@ -114,8 +97,6 @@ export function initViewport(elements, state, renderer) {
 
     /**
      * Center viewport on a specific point
-     * @param {number} x - X coordinate in world space
-     * @param {number} y - Y coordinate in world space
      */
     function centerOn(x, y) {
         const {canvas} = elements;
@@ -132,22 +113,19 @@ export function initViewport(elements, state, renderer) {
     }
 
     /**
-     * Center viewport on a specific node
-     * @param {string} nodeId - ID of the node to center on
+     * Center on a specific node
      */
     function centerOnNode(nodeId) {
         const nodes = stateManager.getNodes();
         const node = nodes.find(n => n.id === nodeId);
 
         if (node) {
-            // Center on node's center point
-            centerOn(node.x + 75, node.y + 20);
+            centerOn(node.x + config.nodeWidth / 2, node.y + config.nodeHeight / 2);
         }
     }
 
     /**
      * Fit all nodes in the viewport
-     * @param {number} padding - Padding around the nodes (default: 50)
      */
     function fitAllNodes(padding = 50) {
         const nodes = stateManager.getNodes();
@@ -155,13 +133,14 @@ export function initViewport(elements, state, renderer) {
         if (nodes.length === 0) return;
 
         // Calculate bounds of all nodes
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        let minX = Infinity, minY = Infinity;
+        let maxX = -Infinity, maxY = -Infinity;
 
         nodes.forEach(node => {
             minX = Math.min(minX, node.x);
             minY = Math.min(minY, node.y);
-            maxX = Math.max(maxX, node.x + 150);
-            maxY = Math.max(maxY, node.y + 40);
+            maxX = Math.max(maxX, node.x + config.nodeWidth);
+            maxY = Math.max(maxY, node.y + config.nodeHeight);
         });
 
         // Add padding
@@ -176,11 +155,7 @@ export function initViewport(elements, state, renderer) {
         const contentHeight = maxY - minY;
         const scaleX = canvas.clientWidth / contentWidth;
         const scaleY = canvas.clientHeight / contentHeight;
-        const scale = Math.min(scaleX, scaleY);
-
-        // Clamp scale to min/max values
-        const viewport = stateManager.getViewport();
-        const newScale = Math.min(Math.max(scale, viewport.minScale), viewport.maxScale);
+        const newScale = Math.min(scaleX, scaleY);
 
         // Calculate center point
         const centerX = (minX + maxX) / 2;
@@ -193,35 +168,57 @@ export function initViewport(elements, state, renderer) {
             offsetY: -centerY + canvas.clientHeight / (2 * newScale)
         });
 
-        // Notify about zoom change
-        editorEvents.emit(EDITOR_EVENTS.ZOOM_CHANGED, newScale);
-
         // Request render update
         renderer.requestRender(true);
     }
 
     /**
-     * Set up event listeners for viewport
+     * Set up event listeners
      */
     function setupEventListeners() {
-        // Listen for mouse wheel events on canvas (handled in events.js)
+        // Wheel event for zooming
+        elements.canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
 
-        // Listen for zoom control events (handled in events.js)
+            // Get mouse position relative to canvas
+            const rect = elements.canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
 
-        // Listen for fit button click
-        const fitButton = document.getElementById('fit-all-btn');
-        if (fitButton) {
-            fitButton.addEventListener('click', () => fitAllNodes());
+            // Zoom in or out based on wheel direction
+            if (e.deltaY < 0) {
+                zoomIn(1.1, {x: mouseX, y: mouseY});
+            } else {
+                zoomOut(1.1, {x: mouseX, y: mouseY});
+            }
+        });
+
+        // Zoom control buttons
+        const zoomInBtn = document.getElementById('zoom-in-btn');
+        const zoomOutBtn = document.getElementById('zoom-out-btn');
+        const zoomResetBtn = document.getElementById('zoom-reset-btn');
+
+        if (zoomInBtn) {
+            zoomInBtn.addEventListener('click', () => zoomIn());
+        }
+
+        if (zoomOutBtn) {
+            zoomOutBtn.addEventListener('click', () => zoomOut());
+        }
+
+        if (zoomResetBtn) {
+            zoomResetBtn.addEventListener('click', () => resetZoom());
+        }
+
+        // Fit All button
+        const fitAllBtn = document.getElementById('fit-all-btn');
+        if (fitAllBtn) {
+            fitAllBtn.addEventListener('click', () => fitAllNodes());
         }
     }
 
-    /**
-     * Get the current viewport state
-     * @returns {Object} - Viewport state
-     */
-    function getViewport() {
-        return stateManager.getViewport();
-    }
+    // Initialize
+    setupEventListeners();
 
     // Return public API
     return {
@@ -232,7 +229,6 @@ export function initViewport(elements, state, renderer) {
         pan,
         centerOn,
         centerOnNode,
-        fitAllNodes,
-        getViewport
+        fitAllNodes
     };
 }

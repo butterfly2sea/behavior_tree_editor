@@ -1,0 +1,360 @@
+/* Buttons */
+button {
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: #f9f9f9;
+    border: 1px solid var(--color-border);
+    border-radius: 3px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+button:hover {
+    background: #e9e9e9;
+}
+
+button.active {
+    background: var(--color-primary);
+    color: white;
+}
+
+button i {
+    margin-right: var(--spacing-sm);
+}
+
+.export-button {
+    background: var(--color-success);
+    color: white;
+}
+
+/* Form elements */
+input, select, textarea {
+    padding: var(--spacing-sm);
+    border: 1px solid var(--color-border);
+    border-radius: 3px;
+    font-size: var(--font-size-sm);
+}
+
+/* Zoom buttons */
+.zoom-button {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    border: none;
+    border-bottom: 1px solid var(--color-border);
+    padding: 0;
+    margin: 0;
+}
+
+.zoom-button:last-child {
+    border-bottom: none;
+}
+
+/* Node styles */
+.tree-node {
+    position: absolute;
+    width: var(--node-width);
+    height: var(--node-height);
+    background: var(--color-background);
+    border: 2px solid var(--color-border);
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+    cursor: move;
+    user-select: none;
+    z-index: 10;
+    will-change: transform;
+}
+
+.tree-node.selected {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 10px rgba(33, 150, 243, 0.3);
+}
+
+.tree-node.invalid-connection {
+    border-color: var(--color-error);
+    box-shadow: 0 0 10px rgba(244, 67, 54, 0.3);
+    animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+}
+
+/* Node types */
+.tree-node.Sequence, .tree-node.ReactiveSequence,
+.tree-node.Fallback, .tree-node.ReactiveFallback,
+.tree-node.IfThenElse, .tree-node.WhileDoElse,
+.tree-node.Parallel {
+    border-color: var(--color-control-border);
+    background: var(--color-control-bg);
+}
+
+.tree-node.Inverter, .tree-node.ForceSuccess,
+.tree-node.ForceFailure, .tree-node.Repeat,
+.tree-node.Retry, .tree-node.Timeout,
+.tree-node.DelayMs {
+    border-color: var(--color-decorator-border);
+    background: var(--color-decorator-bg);
+}
+
+.tree-node.Action {
+    border-color: var(--color-action-border);
+    background: var(--color-action-bg);
+}
+
+.tree-node.Condition {
+    border-color: var(--color-condition-border);
+    background: var(--color-condition-bg);
+}
+
+/* Node content */
+.node-content {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-sm);
+    height: 100%;
+}
+
+.node-icon {
+    width: 20px;
+    height: 20px;
+    margin-right: var(--spacing-sm);
+    background: #ccc;
+    border-radius: 50%;
+}
+
+.node-icon.control {
+    background: var(--color-primary);
+}
+
+.node-icon.decorator {
+    background: var(--color-success);
+}
+
+.node-icon.action {
+    background: var(--color-warning);
+}
+
+.node-icon.condition {
+    background: #9c27b0;
+}
+
+.node-title {
+    flex: 1;
+    font-size: var(--font-size-sm);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Node ports */
+.node-ports {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.port {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: #fff;
+    border: 2px solid #666;
+    border-radius: 50%;
+    pointer-events: all;
+    cursor: crosshair;
+    z-index: 15;
+}
+
+.port-parent {
+    top: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.port-child {
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.port.active {
+    background: var(--color-primary);
+    border-color: var(--color-primary-dark);
+}
+
+.port.disabled {
+    background: var(--color-disabled);
+    border-color: var(--color-disabled-border);
+    cursor: not-allowed;
+}
+
+/* Tree view */
+.tree-view {
+    flex: 1;
+    overflow-y: auto;
+    margin-bottom: var(--spacing-md);
+    padding: var(--spacing-md);
+}
+
+.tree-category {
+    margin-bottom: var(--spacing-sm);
+}
+
+.category-header {
+    padding: var(--spacing-sm);
+    background: #e0e0e0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    border-radius: 3px;
+}
+
+.category-header:hover {
+    background: #d5d5d5;
+}
+
+.category-header .toggle-icon {
+    margin-right: var(--spacing-sm);
+    transition: transform var(--transition-speed);
+}
+
+.category-header.collapsed .toggle-icon {
+    transform: rotate(-90deg);
+}
+
+.category-items {
+    padding-left: 15px;
+    margin-top: var(--spacing-sm);
+    overflow: hidden;
+    max-height: 500px;
+    transition: max-height var(--transition-speed);
+}
+
+.category-items.collapsed {
+    max-height: 0;
+    margin-top: 0;
+}
+
+.node-item {
+    padding: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs);
+    background: #fff;
+    border: 1px solid var(--color-border);
+    border-radius: 3px;
+    cursor: grab;
+    font-size: var(--font-size-sm);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.node-item .node-item-actions {
+    opacity: 0;
+    transition: opacity var(--transition-speed);
+}
+
+.node-item:hover .node-item-actions {
+    opacity: 1;
+}
+
+.node-item-delete {
+    cursor: pointer;
+    color: var(--color-error);
+    margin-left: var(--spacing-sm);
+}
+
+.node-item.control {
+    background: var(--color-control-bg);
+    border-color: var(--color-control-border);
+}
+
+.node-item.decorator {
+    background: var(--color-decorator-bg);
+    border-color: var(--color-decorator-border);
+}
+
+.node-item.action {
+    background: var(--color-action-bg);
+    border-color: var(--color-action-border);
+}
+
+.node-item.condition {
+    background: var(--color-condition-bg);
+    border-color: var(--color-condition-border);
+}
+
+/* Status indicators */
+.tree-node.running {
+    border-color: var(--color-warning);
+    box-shadow: 0 0 15px rgba(255, 235, 59, 0.5);
+}
+
+.tree-node.success {
+    border-color: var(--color-success);
+    box-shadow: 0 0 15px rgba(76, 175, 80, 0.5);
+}
+
+.tree-node.failure {
+    border-color: var(--color-error);
+    box-shadow: 0 0 15px rgba(244, 67, 54, 0.5);
+}
+
+/* Forms */
+.form-group {
+    margin-bottom: var(--spacing-lg);
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: var(--spacing-sm);
+    font-weight: bold;
+    font-size: var(--font-size-sm);
+}
+
+.form-row {
+    margin-bottom: var(--spacing-md);
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-lg);
+}
+
+.parameter-row {
+    display: flex;
+    margin-bottom: var(--spacing-sm);
+    gap: var(--spacing-sm);
+}
+
+.property-value {
+    width: 100%;
+}
+
+.delete-button {
+    background: var(--color-error);
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 3px;
+    margin-top: var(--spacing-lg);
+}
+
+/* Animations */
+@keyframes shake {
+    10%, 90% {
+        transform: translate3d(-1px, 0, 0);
+    }
+    20%, 80% {
+        transform: translate3d(2px, 0, 0);
+    }
+    30%, 50%, 70% {
+        transform: translate3d(-4px, 0, 0);
+    }
+    40%, 60% {
+        transform: translate3d(4px, 0, 0);
+    }
+}

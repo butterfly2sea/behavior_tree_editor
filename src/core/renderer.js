@@ -1,32 +1,32 @@
 /**
- * Renderer module
- * Manages optimized rendering using requestAnimationFrame
+ * Renderer - Manages efficient rendering
  */
-
-import {editorEvents, EDITOR_EVENTS} from './events.js';
-import {logger} from '../index.js';
+import {eventBus, EVENTS} from './events.js';
+import {logger} from '../utils/logger.js';
+import {config} from './config.js';
 
 export function initRenderer(elements, state) {
     const stateManager = state;
 
-    logger.debug('Initializing renderer');
+    // Rendering state
+    let renderRequested = false;
+    let needsFullRender = false;
+    let updatedNodeIds = new Set();
+    let updatedConnectionIds = new Set();
 
-    // Listen for events that trigger rendering
+    // Set up event listeners
     setupEventListeners();
 
     /**
-     * Request a render frame for the next animation frame
-     * @param {boolean} fullUpdate - Whether to perform a full update
+     * Request a render on the next animation frame
      */
     function requestRender(fullUpdate = false) {
-        const renderingState = stateManager.getState().rendering;
-
         if (fullUpdate) {
-            renderingState.needsFullUpdate = true;
+            needsFullRender = true;
         }
 
-        if (!renderingState.isPending) {
-            renderingState.isPending = true;
+        if (!renderRequested) {
+            renderRequested = true;
             window.requestAnimationFrame(performRender);
         }
     }
@@ -40,21 +40,17 @@ export function initRenderer(elements, state) {
 
     /**
      * Request a render update for a specific node
-     * @param {string} nodeId - ID of the node to update
      */
     function requestNodeUpdate(nodeId) {
-        const renderingState = stateManager.getState().rendering;
-        renderingState.updatedNodeIds.add(nodeId);
+        updatedNodeIds.add(nodeId);
         requestRender();
     }
 
     /**
      * Request a render update for a specific connection
-     * @param {string} connectionId - ID of the connection to update
      */
     function requestConnectionUpdate(connectionId) {
-        const renderingState = stateManager.getState().rendering;
-        renderingState.updatedConnectionIds.add(connectionId);
+        updatedConnectionIds.add(connectionId);
         requestRender();
     }
 
@@ -62,39 +58,42 @@ export function initRenderer(elements, state) {
      * Perform the actual rendering
      */
     function performRender() {
-        const renderingState = stateManager.getState().rendering;
-        renderingState.isPending = false;
+        renderRequested = false;
 
-        // 应用视口变换
+        // Apply viewport transform
         applyViewportTransform();
 
-        // 更新可视区域
+        // Update visible area for culling
         updateVisibleArea();
 
-        // 更新网格
-        if (renderingState.needsFullUpdate) {
+        // Update grid if needed
+        if (needsFullRender) {
             renderGrid();
         }
 
-        // 渲染节点和连接
-        if (renderingState.needsFullUpdate) {
+        // Render nodes and connections
+        if (needsFullRender) {
             renderAllNodes();
             renderAllConnections();
-        } else if (renderingState.updatedNodeIds.size > 0 || renderingState.updatedConnectionIds.size > 0) {
-            // 只有在有更新时才执行选择性更新
-            renderUpdatedNodes();
-            renderUpdatedConnections();
+        } else {
+            if (updatedNodeIds.size > 0) {
+                renderUpdatedNodes();
+            }
+
+            if (updatedConnectionIds.size > 0) {
+                renderUpdatedConnections();
+            }
         }
 
-        // 渲染小地图
+        // Render minimap if visible
         if (stateManager.getMinimap().isVisible) {
             renderMinimap();
         }
 
-        // 清除更新跟踪
-        renderingState.needsFullUpdate = false;
-        renderingState.updatedNodeIds.clear();
-        renderingState.updatedConnectionIds.clear();
+        // Clear update flags and sets
+        needsFullRender = false;
+        updatedNodeIds.clear();
+        updatedConnectionIds.clear();
     }
 
     /**
@@ -105,12 +104,12 @@ export function initRenderer(elements, state) {
         const {canvas} = elements;
 
         // Apply transform with hardware acceleration
-        canvas.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+        canvas.style.transform = `translate(${offsetX * scale}px, ${offsetY * scale}px) scale(${scale})`;
         canvas.style.transformOrigin = '0 0';
     }
 
     /**
-     * Update the visible area for virtual scrolling
+     * Update the visible area for culling
      */
     function updateVisibleArea() {
         const {canvas} = elements;
@@ -121,7 +120,7 @@ export function initRenderer(elements, state) {
         const width = canvasRect.width / scale;
         const height = canvasRect.height / scale;
 
-        // Add padding to avoid popping at edges (50% of viewport)
+        // Add padding to avoid popping (50% of viewport)
         const padding = {
             x: width * 0.5,
             y: height * 0.5
@@ -153,28 +152,32 @@ export function initRenderer(elements, state) {
         const ctx = gridCanvas.getContext('2d');
         ctx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
 
+        // Skip if grid is disabled
         if (!grid.enabled) return;
+
+        const {scale} = viewport;
+        const offsetX = (viewport.offsetX * scale) % (grid.size * scale);
+        const offsetY = (viewport.offsetY * scale) % (grid.size * scale);
+        const scaledGridSize = grid.size * scale;
 
         ctx.strokeStyle = '#e0e0e0';
         ctx.lineWidth = 1;
 
-        // Calculate grid offset based on viewport
-        const offsetX = (viewport.offsetX * viewport.scale) % (grid.size * viewport.scale);
-        const offsetY = (viewport.offsetY * viewport.scale) % (grid.size * viewport.scale);
-
         // Draw vertical lines
-        for (let x = offsetX; x <= gridCanvas.width; x += grid.size * viewport.scale) {
+        for (let x = offsetX; x <= gridCanvas.width; x += scaledGridSize) {
+            const roundedX = Math.round(x) + 0.5;
             ctx.beginPath();
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, gridCanvas.height);
+            ctx.moveTo(roundedX, 0);
+            ctx.lineTo(roundedX, gridCanvas.height);
             ctx.stroke();
         }
 
         // Draw horizontal lines
-        for (let y = offsetY; y <= gridCanvas.height; y += grid.size * viewport.scale) {
+        for (let y = offsetY; y <= gridCanvas.height; y += scaledGridSize) {
+            const roundedY = Math.round(y) + 0.5;
             ctx.beginPath();
-            ctx.moveTo(0, y);
-            ctx.lineTo(gridCanvas.width, y);
+            ctx.moveTo(0, roundedY);
+            ctx.lineTo(gridCanvas.width, roundedY);
             ctx.stroke();
         }
     }
@@ -183,7 +186,6 @@ export function initRenderer(elements, state) {
      * Render all nodes
      */
     function renderAllNodes() {
-        // First, calculate which nodes are in the visible area
         const nodes = stateManager.getNodes();
         const visibleArea = stateManager.getVisibleArea();
 
@@ -193,7 +195,6 @@ export function initRenderer(elements, state) {
 
         // Create only nodes that are visible
         nodes.forEach(node => {
-            // Check if node is in visible area
             if (isNodeVisible(node, visibleArea)) {
                 createNodeElement(node);
             }
@@ -201,17 +202,14 @@ export function initRenderer(elements, state) {
     }
 
     /**
-     * Check if a node is visible in the current viewport
-     * @param {Object} node - Node to check
-     * @param {Object} visibleArea - Visible area bounds
-     * @returns {boolean} - Whether node is visible
+     * Check if node is visible in the current viewport
      */
     function isNodeVisible(node, visibleArea) {
         return (
             node.x < visibleArea.maxX &&
-            node.x + 150 > visibleArea.minX &&
+            node.x + config.nodeWidth > visibleArea.minX &&
             node.y < visibleArea.maxY &&
-            node.y + 40 > visibleArea.minY
+            node.y + config.nodeHeight > visibleArea.minY
         );
     }
 
@@ -219,15 +217,13 @@ export function initRenderer(elements, state) {
      * Render only nodes that have been updated
      */
     function renderUpdatedNodes() {
-        const renderingState = stateManager.getState().rendering;
         const nodes = stateManager.getNodes();
         const visibleArea = stateManager.getVisibleArea();
 
         // Process nodes that need updating
-        renderingState.updatedNodeIds.forEach(nodeId => {
-            // Find the node
+        for (const nodeId of updatedNodeIds) {
             const node = nodes.find(n => n.id === nodeId);
-            if (!node) return;
+            if (!node) continue;
 
             // Check if node is visible
             if (isNodeVisible(node, visibleArea)) {
@@ -246,7 +242,7 @@ export function initRenderer(elements, state) {
                     existingNode.remove();
                 }
             }
-        });
+        }
 
         // Check if any existing nodes are now outside the visible area
         const existingNodes = document.querySelectorAll('.tree-node');
@@ -271,21 +267,21 @@ export function initRenderer(elements, state) {
     }
 
     /**
-     * Create a DOM element for a node
-     * @param {Object} node - Node data
+     * Create DOM element for a node
      */
     function createNodeElement(node) {
         const {canvas} = elements;
         const selectedNodes = stateManager.getSelectedNodes();
-        const monitorNodeStates = stateManager.getState().monitor.nodeStates;
+        const monitorNodeStates = stateManager.getMonitor().nodeStates;
 
         // Create node element
         const nodeEl = document.createElement('div');
         nodeEl.className = `tree-node ${node.type}`;
         nodeEl.setAttribute('data-id', node.id);
+        nodeEl.draggable = true;
 
         // Add monitoring state class if available
-        if (stateManager.getState().monitor.active && monitorNodeStates[node.id]) {
+        if (stateManager.getMonitor().active && monitorNodeStates[node.id]) {
             nodeEl.classList.add(monitorNodeStates[node.id]);
         }
 
@@ -294,7 +290,7 @@ export function initRenderer(elements, state) {
             nodeEl.classList.add('selected');
         }
 
-        // Position the node (positions are stored in world coordinates)
+        // Position the node
         nodeEl.style.left = `${node.x}px`;
         nodeEl.style.top = `${node.y}px`;
 
@@ -327,27 +323,60 @@ export function initRenderer(elements, state) {
 
         nodeEl.appendChild(portsEl);
 
-        // Set up drag behavior
-        nodeEl.draggable = true;
-
-        // Add node to canvas
+        // Add to canvas
         canvas.appendChild(nodeEl);
 
-        // Update port visibility based on node constraints
-        updatePortVisibility(nodeEl, node);
+        // Add event listeners (moved to utils/drag.js)
+
+        // Update port visibility based on constraints
+        updateNodePortVisibility(nodeEl, node);
 
         return nodeEl;
     }
 
     /**
      * Update port visibility based on node constraints
-     * @param {HTMLElement} nodeEl - Node element
-     * @param {Object} node - Node data
      */
-    function updatePortVisibility(nodeEl, node) {
-        // This would be implemented based on the constraints defined in node-types.js
-        // For now, this is a placeholder that would need to be completed
-        // based on the specific implementation details
+    function updateNodePortVisibility(nodeEl, node) {
+        const {getNodeTypeDefinition} = window; // From node-types.js
+        if (!getNodeTypeDefinition) return;
+
+        const connections = stateManager.getConnections();
+        const nodeDef = getNodeTypeDefinition(node.type, node.category);
+
+        if (!nodeDef) return;
+
+        // Child port visibility
+        const childPort = nodeEl.querySelector('.port-child');
+        if (childPort) {
+            if (nodeDef.maxChildren === 0) {
+                childPort.classList.add('disabled');
+                childPort.title = 'This node cannot have children';
+            } else {
+                // Check max children constraint
+                const childCount = connections.filter(conn => conn.source === node.id).length;
+                if (nodeDef.maxChildren !== null && childCount >= nodeDef.maxChildren) {
+                    childPort.classList.add('disabled');
+                    childPort.title = `Maximum children: ${nodeDef.maxChildren}`;
+                } else {
+                    childPort.classList.remove('disabled');
+                    childPort.title = '';
+                }
+            }
+        }
+
+        // Parent port visibility
+        const parentPort = nodeEl.querySelector('.port-parent');
+        if (parentPort) {
+            const hasParent = connections.some(conn => conn.target === node.id);
+            if (hasParent) {
+                parentPort.classList.add('disabled');
+                parentPort.title = 'This node already has a parent';
+            } else {
+                parentPort.classList.remove('disabled');
+                parentPort.title = '';
+            }
+        }
     }
 
     /**
@@ -358,9 +387,7 @@ export function initRenderer(elements, state) {
         const connections = stateManager.getConnections();
 
         // Clear existing connections
-        while (connectionsLayer.firstChild) {
-            connectionsLayer.removeChild(connectionsLayer.firstChild);
-        }
+        connectionsLayer.innerHTML = '';
 
         // Create new connections
         connections.forEach(connection => {
@@ -372,50 +399,50 @@ export function initRenderer(elements, state) {
      * Render only connections that have been updated
      */
     function renderUpdatedConnections() {
-        const renderingState = stateManager.getState().rendering;
         const connections = stateManager.getConnections();
 
         // Process connections that need updating
-        renderingState.updatedConnectionIds.forEach(connectionId => {
-            // Find the connection
+        for (const connectionId of updatedConnectionIds) {
             const connection = connections.find(c => c.id === connectionId);
-            if (!connection) return;
+            if (!connection) continue;
 
             // Remove existing connection element if it exists
-            const existingConnection = document.querySelector(`.connection-path[data-id="${connectionId}"]`);
+            const existingConnection = document.querySelector(`path[data-id="${connectionId}"]`);
             if (existingConnection) {
                 existingConnection.remove();
             }
 
             // Create new connection element
             createConnectionElement(connection);
-        });
+        }
     }
 
     /**
-     * Create a connection element
-     * @param {Object} connection - Connection data
+     * Create SVG element for a connection
      */
     function createConnectionElement(connection) {
         const {connectionsLayer} = elements;
         const nodes = stateManager.getNodes();
+        const selectedConnection = stateManager.getSelectedConnection();
 
         // Find source and target nodes
         const sourceNode = nodes.find(node => node.id === connection.source);
         const targetNode = nodes.find(node => node.id === connection.target);
 
-        if (!sourceNode || !targetNode) return;
+        if (!sourceNode || !targetNode) return null;
 
-        // Create the SVG path
+        // Create path element
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         path.setAttribute('class', 'connection-path');
         path.setAttribute('fill', 'none');
-        path.setAttribute('stroke', '#666');
-        path.setAttribute('stroke-width', '2');
+        path.setAttribute('stroke', connection.id === selectedConnection ?
+            config.connection.selectedColor :
+            config.connection.normalColor);
+        path.setAttribute('stroke-width', config.connection.strokeWidth);
         path.setAttribute('data-id', connection.id);
 
-        // Generate the path data
-        const pathData = generatePathData(sourceNode, targetNode);
+        // Generate path data
+        const pathData = generateConnectionPath(sourceNode, targetNode);
         path.setAttribute('d', pathData);
 
         // Add to connections layer
@@ -425,34 +452,34 @@ export function initRenderer(elements, state) {
     }
 
     /**
-     * Generate SVG path data for a connection
-     * @param {Object} sourceNode - Source node
-     * @param {Object} targetNode - Target node
-     * @returns {string} - SVG path data
+     * Generate SVG path for a connection
      */
-    function generatePathData(sourceNode, targetNode) {
-        // Starting point (bottom-center of source node)
-        const startX = sourceNode.x + 75;
-        const startY = sourceNode.y + 40;
+    function generateConnectionPath(sourceNode, targetNode) {
+        // Start point (source node's bottom center)
+        const startX = sourceNode.x + config.nodeWidth / 2;
+        const startY = sourceNode.y + config.nodeHeight;
 
-        // Ending point (top-center of target node)
-        const endX = targetNode.x + 75;
+        // End point (target node's top center)
+        const endX = targetNode.x + config.nodeWidth / 2;
         const endY = targetNode.y;
 
-        // Calculate control points for curve
-        const controlY = (startY + endY) / 2;
+        // Calculate control points for a nice curve
+        const deltaY = endY - startY;
+        const controlY1 = startY + Math.min(Math.abs(deltaY) * 0.3, 40);
+        const controlY2 = endY - Math.min(Math.abs(deltaY) * 0.3, 40);
 
-        return `M ${startX} ${startY} C ${startX} ${controlY}, ${endX} ${controlY}, ${endX} ${endY}`;
+        // Return path data for a cubic bezier curve
+        return `M ${startX} ${startY} C ${startX} ${controlY1}, ${endX} ${controlY2}, ${endX} ${endY}`;
     }
 
     /**
-     * Render the pending connection (while creating a new connection)
+     * Render the pending connection during creation
      */
     function renderPendingConnection() {
         const {activeConnectionLayer} = elements;
         const pendingConnection = stateManager.getState().pendingConnection;
         const nodes = stateManager.getNodes();
-        const mousePosition = stateManager.getState().mousePosition;
+        const mousePos = stateManager.getState().mousePosition;
 
         if (!pendingConnection) {
             activeConnectionLayer.innerHTML = '';
@@ -460,38 +487,44 @@ export function initRenderer(elements, state) {
         }
 
         // Find source node
-        const sourceNode = nodes.find(node => node.id === pendingConnection.sourceId);
+        const sourceNode = nodes.find(n => n.id === pendingConnection.sourceId);
         if (!sourceNode) return;
 
-        // Get start point based on port type
+        // Get start coordinates based on port type
         let startX, startY;
         if (pendingConnection.sourcePort === 'parent') {
-            startX = sourceNode.x + 75; // middle top of node
+            startX = sourceNode.x + config.nodeWidth / 2;
             startY = sourceNode.y;
         } else {
-            startX = sourceNode.x + 75; // middle bottom of node
-            startY = sourceNode.y + 40;
+            startX = sourceNode.x + config.nodeWidth / 2;
+            startY = sourceNode.y + config.nodeHeight;
         }
 
-        // Create the SVG path
+        // Create path for pending connection
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         path.setAttribute('fill', 'none');
-        path.setAttribute('stroke', '#0066cc');
-        path.setAttribute('stroke-width', '2');
+        path.setAttribute('stroke', config.connection.pendingColor);
+        path.setAttribute('stroke-width', config.connection.strokeWidth);
         path.setAttribute('stroke-dasharray', '5,5');
 
-        // Generate the path data
-        const controlY = (startY + mousePosition.y) / 2;
-        const pathData = `M ${startX} ${startY} C ${startX} ${controlY}, ${mousePosition.x} ${controlY}, ${mousePosition.x} ${mousePosition.y}`;
+        // Generate curve
+        const deltaY = mousePos.y - startY;
+        const controlY1 = startY + Math.min(Math.abs(deltaY) * 0.3, 40);
+        const controlY2 = mousePos.y - Math.min(Math.abs(deltaY) * 0.3, 40);
+        const pathData = `M ${startX} ${startY} C ${startX} ${controlY1}, ${mousePos.x} ${controlY2}, ${mousePos.x} ${mousePos.y}`;
+
         path.setAttribute('d', pathData);
 
-        // Clear and add the new path
+        // Clear and add new path
         activeConnectionLayer.innerHTML = '';
         activeConnectionLayer.appendChild(path);
+
+        // Make layer visible
+        activeConnectionLayer.style.display = 'block';
     }
 
     /**
-     * Render the minimap
+     * Render minimap
      */
     function renderMinimap() {
         const {minimap} = elements;
@@ -523,9 +556,9 @@ export function initRenderer(elements, state) {
             const targetNode = nodes.find(n => n.id === conn.target);
 
             if (sourceNode && targetNode) {
-                const sourceX = padding + (sourceNode.x + 75 - bounds.minX) * scale;
-                const sourceY = padding + (sourceNode.y + 40 - bounds.minY) * scale;
-                const targetX = padding + (targetNode.x + 75 - bounds.minX) * scale;
+                const sourceX = padding + (sourceNode.x + config.nodeWidth / 2 - bounds.minX) * scale;
+                const sourceY = padding + (sourceNode.y + config.nodeHeight - bounds.minY) * scale;
+                const targetX = padding + (targetNode.x + config.nodeWidth / 2 - bounds.minX) * scale;
                 const targetY = padding + (targetNode.y - bounds.minY) * scale;
 
                 ctx.beginPath();
@@ -541,8 +574,8 @@ export function initRenderer(elements, state) {
         nodes.forEach(node => {
             const x = padding + (node.x - bounds.minX) * scale;
             const y = padding + (node.y - bounds.minY) * scale;
-            const width = 150 * scale;
-            const height = 40 * scale;
+            const width = config.nodeWidth * scale;
+            const height = config.nodeHeight * scale;
 
             ctx.fillRect(x, y, width, height);
         });
@@ -550,7 +583,7 @@ export function initRenderer(elements, state) {
         // Draw viewport rectangle
         const viewportMinX = -viewport.offsetX / viewport.scale;
         const viewportMinY = -viewport.offsetY / viewport.scale;
-        const container = minimap.parentElement.parentElement; // Editor container
+        const container = minimap.parentElement.parentElement;
         const viewportWidth = container.clientWidth / viewport.scale;
         const viewportHeight = container.clientHeight / viewport.scale;
 
@@ -565,22 +598,25 @@ export function initRenderer(elements, state) {
     }
 
     /**
-     * Calculate bounds of all nodes for minimap
-     * @param {Array} nodes - Array of nodes
-     * @returns {Object} - Bounds object with minX, minY, maxX, maxY, width, height
+     * Calculate bounds of all nodes
      */
     function calculateNodesBounds(nodes) {
         if (nodes.length === 0) {
-            return {minX: -500, minY: -500, maxX: 500, maxY: 500, width: 1000, height: 1000};
+            return {
+                minX: -500, minY: -500,
+                maxX: 500, maxY: 500,
+                width: 1000, height: 1000
+            };
         }
 
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        let minX = Infinity, minY = Infinity;
+        let maxX = -Infinity, maxY = -Infinity;
 
         nodes.forEach(node => {
             minX = Math.min(minX, node.x);
             minY = Math.min(minY, node.y);
-            maxX = Math.max(maxX, node.x + 150);
-            maxY = Math.max(maxY, node.y + 40);
+            maxX = Math.max(maxX, node.x + config.nodeWidth);
+            maxY = Math.max(maxY, node.y + config.nodeHeight);
         });
 
         // Add padding
@@ -597,29 +633,65 @@ export function initRenderer(elements, state) {
     }
 
     /**
-     * Set up event listeners for rendering
+     * Set up event listeners
      */
     function setupEventListeners() {
-        // Listen for events that require rendering
-        editorEvents.on(EDITOR_EVENTS.NODE_CREATED, () => requestRender());
-        editorEvents.on(EDITOR_EVENTS.NODE_UPDATED, () => requestRender());
-        editorEvents.on(EDITOR_EVENTS.NODE_DELETED, () => requestRender());
-        editorEvents.on(EDITOR_EVENTS.NODE_MOVED, () => requestRender());
-        editorEvents.on(EDITOR_EVENTS.SELECTION_CHANGED, () => requestRender());
-
-        editorEvents.on(EDITOR_EVENTS.CONNECTION_CREATED, () => requestRender());
-        editorEvents.on(EDITOR_EVENTS.CONNECTION_DELETED, () => requestRender());
-
-        editorEvents.on(EDITOR_EVENTS.VIEWPORT_CHANGED, () => requestRender(true));
-        editorEvents.on(EDITOR_EVENTS.GRID_SETTINGS_CHANGED, () => requestRender(true));
-
-        editorEvents.on(EDITOR_EVENTS.WINDOW_RESIZED, () => {
-            updateCanvasDimensions();
-            requestRender(true);
+        // Node events
+        eventBus.on(EVENTS.NODE_CHANGED, (data) => {
+            if (data.type === 'created' || data.type === 'deleted') {
+                requestFullRender();
+            } else if (data.type === 'updated') {
+                requestNodeUpdate(data.node.id);
+            } else if (data.type === 'batch-updated') {
+                data.nodeIds.forEach(id => requestNodeUpdate(id));
+            } else if (data.type === 'moved') {
+                data.nodeIds.forEach(id => requestNodeUpdate(id));
+            }
         });
 
-        editorEvents.on(EDITOR_EVENTS.STATE_RESET, () => requestRender(true));
-        editorEvents.on(EDITOR_EVENTS.STATE_LOADED, () => requestRender(true));
+        // Connection events
+        eventBus.on(EVENTS.CONNECTION_CHANGED, (data) => {
+            if (data.type === 'created' || data.type === 'deleted') {
+                requestConnectionUpdate(data.connection.id);
+            } else if (data.type === 'selected') {
+                requestFullRender();
+            }
+        });
+
+        // Viewport events
+        eventBus.on(EVENTS.VIEWPORT_CHANGED, () => {
+            requestFullRender();
+        });
+
+        // Grid events
+        eventBus.on(EVENTS.GRID_CHANGED, () => {
+            requestFullRender();
+        });
+
+        // Selection events
+        eventBus.on(EVENTS.SELECTION_CHANGED, () => {
+            requestFullRender();
+        });
+
+        // Monitor events
+        eventBus.on(EVENTS.MONITOR_CHANGED, () => {
+            requestFullRender();
+        });
+
+        // State reset/load
+        eventBus.on(EVENTS.STATE_RESET, () => {
+            requestFullRender();
+        });
+
+        eventBus.on(EVENTS.STATE_LOADED, () => {
+            requestFullRender();
+        });
+
+        // Window resize
+        window.addEventListener('resize', () => {
+            updateCanvasDimensions();
+            requestFullRender();
+        });
     }
 
     /**
@@ -628,18 +700,15 @@ export function initRenderer(elements, state) {
     function updateCanvasDimensions() {
         const {canvas, gridCanvas, connectionsLayer, activeConnectionLayer} = elements;
 
-        // Get container size
         const container = canvas.parentElement;
         const width = container.clientWidth;
         const height = container.clientHeight;
 
-        // Update grid canvas size
         if (gridCanvas) {
             gridCanvas.width = width;
             gridCanvas.height = height;
         }
 
-        // Update SVG layers sizes
         if (connectionsLayer) {
             connectionsLayer.setAttribute('width', width);
             connectionsLayer.setAttribute('height', height);
@@ -658,37 +727,25 @@ export function initRenderer(elements, state) {
         requestNodeUpdate,
         requestConnectionUpdate,
         renderPendingConnection,
+        renderGrid,
         renderMinimap,
-        updateCanvasDimensions
-    };
-}
+        updateCanvasDimensions,
 
-// Helper functions
+        // Coordinate conversion utilities
+        screenToWorld: (x, y) => {
+            const {scale, offsetX, offsetY} = stateManager.getViewport();
+            return {
+                x: x / scale - offsetX,
+                y: y / scale - offsetY
+            };
+        },
 
-/**
- * Convert world coordinates to screen coordinates
- * @param {number} x - World X coordinate
- * @param {number} y - World Y coordinate
- * @param {Object} viewport - Viewport state
- * @returns {Object} - Screen coordinates {x, y}
- */
-export function worldToScreen(x, y, viewport) {
-    return {
-        x: (x + viewport.offsetX) * viewport.scale,
-        y: (y + viewport.offsetY) * viewport.scale
-    };
-}
-
-/**
- * Convert screen coordinates to world coordinates
- * @param {number} x - Screen X coordinate
- * @param {number} y - Screen Y coordinate
- * @param {Object} viewport - Viewport state
- * @returns {Object} - World coordinates {x, y}
- */
-export function screenToWorld(x, y, viewport) {
-    return {
-        x: x / viewport.scale - viewport.offsetX,
-        y: y / viewport.scale - viewport.offsetY
+        worldToScreen: (x, y) => {
+            const {scale, offsetX, offsetY} = stateManager.getViewport();
+            return {
+                x: (x + offsetX) * scale,
+                y: (y + offsetY) * scale
+            };
+        }
     };
 }

@@ -1,44 +1,61 @@
 /**
- * BehaviorTree.CPP Editor
- * Main JavaScript entry point
+ * BehaviorTree.CPP Editor - Main Entry Point
  */
-
-// Import modules
-import {initState} from './modules/state.js';
-import {initRenderer} from './modules/renderer.js';
-import {initEvents, editorEvents, EDITOR_EVENTS} from './modules/events.js';
+import {config} from './core/config.js';
+import {Logger} from './utils/logger.js';
+import {initState} from './core/state.js';
+import {eventBus, EVENTS} from './core/events.js';
+import {initRenderer} from './core/renderer.js';
 import {initViewport} from './modules/viewport.js';
 import {initGrid} from './modules/grid.js';
-import {initMinimap} from './modules/minimap.js';
 import {initNodes} from './modules/nodes.js';
 import {initConnections} from './modules/connections.js';
-import {initSerialization} from './modules/serialization.js';
 import {initLayout} from './modules/layout.js';
+import {initMinimap} from './components/minimap.js';
+import {initSerialization} from './modules/serialization.js';
+import {initMonitor} from './modules/monitor.js';
 import {initToolbar} from './components/toolbar.js';
 import {initDockPanel} from './components/dock-panel.js';
-import {initPropertiesPanel} from './components/properties-panel.js';
-import {Logger, LogLevel} from './utils/logger.js';
+import {initPropertiesPanel} from './components/properties.js';
+import {initDialogs} from './components/dialogs.js';
+import {setupKeyboardShortcuts} from './utils/helpers.js';
 
 // Create global logger
-export const logger = new Logger(LogLevel.INFO);
+export const logger = new Logger(config.logLevel);
 
-// DOM Elements
+// Initialize DOM elements object
 const elements = {
+    // Main containers
     canvas: document.getElementById('canvas'),
     gridCanvas: document.getElementById('grid-canvas'),
     connectionsLayer: document.getElementById('connections-layer'),
     activeConnectionLayer: document.getElementById('active-connection-layer'),
+    dockPanel: document.getElementById('dock-panel'),
     propertiesPanel: document.getElementById('properties-panel'),
     propertiesContent: document.getElementById('properties-content'),
+
+    // Tree view
     nodeTreeView: document.getElementById('node-tree-view'),
-    connectionContextMenu: document.getElementById('connection-context-menu'),
-    nodeTypeContextMenu: document.getElementById('node-type-context-menu'),
-    dockPanel: document.getElementById('dock-panel'),
-    minimap: document.getElementById('minimap'),
-    minimapContainer: document.getElementById('minimap-container'),
+
+    // Modals
     createNodeModal: document.getElementById('create-node-modal'),
     xmlModal: document.getElementById('xml-modal'),
-    xmlContent: document.getElementById('xml-content')
+    xmlContent: document.getElementById('xml-content'),
+
+    // Context menus
+    connectionContextMenu: document.getElementById('connection-context-menu'),
+    nodeContextMenu: document.getElementById('node-context-menu'),
+
+    // Minimap
+    minimap: document.getElementById('minimap'),
+    minimapContainer: document.getElementById('minimap-container'),
+
+    // Monitor elements
+    sseUrlInput: document.getElementById('sse-url'),
+    monitorStatusIndicator: document.getElementById('monitor-status-indicator'),
+    monitorStatusText: document.getElementById('monitor-status-text'),
+    startMonitorBtn: document.getElementById('start-monitor-btn'),
+    stopMonitorBtn: document.getElementById('stop-monitor-btn')
 };
 
 // Initialize the application
@@ -49,24 +66,30 @@ function init() {
         // Initialize modules
         const state = initState();
         const renderer = initRenderer(elements, state);
+
+        // Initialize core modules
         const viewport = initViewport(elements, state, renderer);
         const grid = initGrid(elements, state, renderer);
-        const minimap = initMinimap(elements, state, renderer);
         const nodes = initNodes(elements, state, renderer);
         const connections = initConnections(elements, state, renderer);
         const layout = initLayout(elements, state, renderer);
+        const minimap = initMinimap(elements, state, renderer);
         const serialization = initSerialization(elements, state);
+        const monitor = initMonitor(elements, state, renderer);
 
         // Initialize UI components
-        initToolbar(elements, state, renderer);
-        initDockPanel(elements, state, renderer);
-        initPropertiesPanel(elements, state, renderer);
+        const toolbar = initToolbar(elements, state);
+        const dockPanel = initDockPanel(elements, state, nodes);
+        const propertiesPanel = initPropertiesPanel(elements, state, renderer);
+        const dialogs = initDialogs(elements, state);
 
-        // Initialize event handling
-        initEvents(elements, state, renderer);
+        // Setup keyboard shortcuts
+        setupKeyboardShortcuts(state);
 
-        // Subscribe to global events
-        setupEventListeners();
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            eventBus.emit(EVENTS.VIEWPORT_CHANGED, {type: 'resize'});
+        });
 
         // Initial render
         renderer.requestFullRender();
@@ -74,76 +97,32 @@ function init() {
         logger.info('Editor initialization complete');
     } catch (error) {
         logger.error('Failed to initialize editor:', error);
-        showErrorToUser('Failed to initialize editor: ' + error.message);
+        showErrorToast('Failed to initialize editor: ' + error.message);
     }
 }
 
-function setupEventListeners() {
-    // Listen for window resize
-    window.addEventListener('resize', () => {
-        editorEvents.emit(EDITOR_EVENTS.WINDOW_RESIZED);
-    });
-
-    // Global keyboard shortcuts
-    document.addEventListener('keydown', (e) => {
-        // Don't process shortcuts when typing in input fields
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-            return;
-        }
-
-        // Ctrl+S to save
-        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-            e.preventDefault();
-            editorEvents.emit(EDITOR_EVENTS.SAVE_REQUESTED);
-        }
-
-        // Ctrl+O to load
-        if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
-            e.preventDefault();
-            editorEvents.emit(EDITOR_EVENTS.LOAD_REQUESTED);
-        }
-
-        // Delete to remove selected nodes
-        if (e.key === 'Delete') {
-            editorEvents.emit(EDITOR_EVENTS.DELETE_SELECTED_REQUESTED);
-        }
-
-        // Ctrl+A to select all
-        if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
-            e.preventDefault();
-            editorEvents.emit(EDITOR_EVENTS.SELECT_ALL_REQUESTED);
-        }
-
-        // Escape to cancel operations
-        if (e.key === 'Escape') {
-            editorEvents.emit(EDITOR_EVENTS.ESCAPE_PRESSED);
-        }
-    });
-}
-
 // Display user-friendly error notification
-export function showErrorToUser(message) {
-    // Create error toast/notification
-    const errorNotification = document.createElement('div');
-    errorNotification.className = 'error-notification';
-    errorNotification.innerHTML = `
-        <div class="error-icon">⚠️</div>
-        <div class="error-message">${message}</div>
-        <div class="error-close">×</div>
-    `;
+export function showErrorToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'error-notification';
+    toast.innerHTML = `
+    <div class="error-icon">⚠️</div>
+    <div class="error-message">${message}</div>
+    <div class="error-close">×</div>
+  `;
 
-    document.body.appendChild(errorNotification);
+    document.body.appendChild(toast);
 
     // Automatically remove after 5 seconds
     setTimeout(() => {
-        if (errorNotification.parentNode) {
-            errorNotification.remove();
+        if (toast.parentNode) {
+            toast.remove();
         }
     }, 5000);
 
     // Click to dismiss
-    errorNotification.querySelector('.error-close').addEventListener('click', () => {
-        errorNotification.remove();
+    toast.querySelector('.error-close').addEventListener('click', () => {
+        toast.remove();
     });
 }
 

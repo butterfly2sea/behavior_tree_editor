@@ -4,162 +4,159 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BehaviorTree.CPP Editor</title>
+    <link rel="stylesheet" href="css/theme.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-<div class="header">
-    <h1>BehaviorTree.CPP Editor</h1>
-</div>
-
-<div class="toolbar" id="main-toolbar">
-    <div class="toolbar-group">
-        <button id="save-btn" title="Save"><i class="fa fa-save"></i> Save</button>
-        <button id="load-btn" title="Load"><i class="fa fa-folder-open"></i> Load</button>
-        <button id="clear-btn" title="Clear"><i class="fa fa-trash"></i> Clear</button>
-        <button id="export-xml-btn" class="export-button" title="Export XML"><i class="fa fa-file-export"></i> Export
-            XML
-        </button>
+    <div class="header">
+        <h1>BehaviorTree.CPP Editor</h1>
     </div>
 
-    <div class="toolbar-group">
-        <button id="toggle-grid-btn" title="Toggle Grid"><i class="fa fa-grid"></i> Grid</button>
-        <button id="toggle-snap-btn" title="Toggle Snap to Grid"><i class="fa fa-object-group"></i> Snap</button>
+    <div class="toolbar" id="main-toolbar">
+        <div class="toolbar-group">
+            <button id="save-btn" title="Save"><i class="icon-save"></i> Save</button>
+            <button id="load-btn" title="Load"><i class="icon-folder"></i> Load</button>
+            <button id="clear-btn" title="Clear"><i class="icon-trash"></i> Clear</button>
+            <button id="export-xml-btn" class="export-button" title="Export XML"><i class="icon-export"></i> Export XML</button>
+        </div>
+
+        <div class="toolbar-group">
+            <button id="toggle-grid-btn" title="Toggle Grid"><i class="icon-grid"></i> Grid</button>
+            <button id="toggle-snap-btn" title="Toggle Snap to Grid"><i class="icon-snap"></i> Snap</button>
+        </div>
+
+        <div class="toolbar-group">
+            <button id="align-left-btn" title="Align Left"><i class="icon-align-left"></i></button>
+            <button id="align-center-btn" title="Align Center"><i class="icon-align-center"></i></button>
+            <button id="align-right-btn" title="Align Right"><i class="icon-align-right"></i></button>
+            <button id="align-top-btn" title="Align Top"><i class="icon-align-top"></i></button>
+            <button id="align-middle-btn" title="Align Middle"><i class="icon-align-middle"></i></button>
+            <button id="align-bottom-btn" title="Align Bottom"><i class="icon-align-bottom"></i></button>
+        </div>
+
+        <div class="toolbar-group layout-controls">
+            <button id="auto-layout-btn" title="Auto Layout"><i class="icon-layout"></i> Auto Layout</button>
+            <select id="layout-type">
+                <option value="hierarchical">Hierarchical</option>
+                <option value="forcedirected">Force Directed</option>
+            </select>
+        </div>
     </div>
 
-    <div class="toolbar-group">
-        <button id="align-left-btn" title="Align Left"><i class="fa fa-align-left"></i></button>
-        <button id="align-center-btn" title="Align Center"><i class="fa fa-align-center"></i></button>
-        <button id="align-right-btn" title="Align Right"><i class="fa fa-align-right"></i></button>
-        <button id="align-top-btn" title="Align Top"><i class="fa fa-align-top"></i></button>
-        <button id="align-middle-btn" title="Align Middle"><i class="fa fa-align-center"></i></button>
-        <button id="align-bottom-btn" title="Align Bottom"><i class="fa fa-align-bottom"></i></button>
-    </div>
+    <div class="main-container">
+        <div class="dock-panel" id="dock-panel">
+            <div class="dock-header">
+                <h3>Node Palette</h3>
+                <button id="toggle-dock-btn" class="toggle-dock-btn" title="Toggle Palette">
+                    <i class="icon-chevron-left"></i>
+                </button>
+            </div>
 
-    <div class="toolbar-group layout-controls">
-        <button id="auto-layout-btn" title="Auto Layout"><i class="fa fa-sitemap"></i> Auto Layout</button>
-        <select id="layout-type">
-            <option value="hierarchical">Hierarchical</option>
-            <option value="forcedirected">Force Directed</option>
-        </select>
-    </div>
-</div>
+            <div class="tree-view" id="node-tree-view"></div>
 
-<div class="main-container">
-    <div class="dock-panel" id="dock-panel">
-        <div class="dock-header">
-            <h3>Node Palette</h3>
-            <button id="toggle-dock-btn" class="toggle-dock-btn" title="Toggle Palette">
-                <i class="fa fa-chevron-left"></i>
+            <button id="add-node-btn" class="add-node-button">
+                <i class="icon-plus"></i> Add Custom Node
             </button>
+
+            <div class="monitor-panel">
+                <div class="monitor-header">
+                    <h3>Tree Monitor</h3>
+                    <div class="monitor-status">
+                        <span class="status-indicator disconnected" id="monitor-status-indicator"></span>
+                        <span id="monitor-status-text">Disconnected</span>
+                    </div>
+                </div>
+                <input type="text" id="sse-url" class="monitor-url"
+                       placeholder="SSE URL" value="http://localhost:8080/tree_status">
+                <button id="start-monitor-btn" class="monitor-button">
+                    <i class="icon-play"></i> Start Monitoring
+                </button>
+                <button id="stop-monitor-btn" class="monitor-button stop" style="display: none;">
+                    <i class="icon-stop"></i> Stop Monitoring
+                </button>
+            </div>
         </div>
 
-        <div class="tree-view" id="node-tree-view">
-            <!-- Tree categories will be added here -->
-        </div>
-
-        <button id="add-node-btn" class="add-node-button">
-            <i class="fa fa-plus"></i> Add Custom Node
-        </button>
-
-        <div class="monitor-panel">
-            <div class="monitor-header">
-                <h3>Tree Monitor</h3>
-                <div class="monitor-status">
-                    <span class="status-indicator disconnected" id="monitor-status-indicator"></span>
-                    <span id="monitor-status-text">Disconnected</span>
+        <div class="editor-container">
+            <div class="canvas-container">
+                <canvas class="grid-canvas" id="grid-canvas"></canvas>
+                <div class="canvas" id="canvas">
+                    <svg class="connections-layer" id="connections-layer"></svg>
+                    <svg class="active-connection-layer" id="active-connection-layer" style="display: none;"></svg>
                 </div>
             </div>
-            <input type="text" id="sse-url" class="monitor-url"
-                   placeholder="SSE URL (e.g., http://localhost:8080/tree_status)"
-                   value="http://localhost:8080/tree_status">
-            <button id="start-monitor-btn" class="add-node-button">
-                <i class="fa fa-play"></i> Start Monitoring
-            </button>
-            <button id="stop-monitor-btn" class="add-node-button" style="display: none; background-color: #f44336;">
-                <i class="fa fa-stop"></i> Stop Monitoring
-            </button>
+
+            <div class="zoom-controls">
+                <button id="zoom-in-btn" class="zoom-button" title="Zoom In">+</button>
+                <button id="zoom-reset-btn" class="zoom-button" title="Reset Zoom">⟳</button>
+                <button id="zoom-out-btn" class="zoom-button" title="Zoom Out">-</button>
+            </div>
+
+            <div class="minimap-container" id="minimap-container">
+                <canvas id="minimap" width="150" height="150"></canvas>
+            </div>
+
+            <div class="properties-panel" id="properties-panel" style="display: none;">
+                <h3>Properties</h3>
+                <div id="properties-content"></div>
+            </div>
         </div>
     </div>
 
-    <div class="editor-container">
-        <div class="canvas-container">
-            <canvas class="grid-canvas" id="grid-canvas"></canvas>
-            <div class="canvas" id="canvas">
-                <svg class="connections-layer" id="connections-layer"></svg>
-                <svg class="active-connection-layer" id="active-connection-layer" style="display: none;"></svg>
-                <!-- Nodes will be added here dynamically -->
-            </div>
-        </div>
-
-        <div class="zoom-controls">
-            <button id="zoom-in-btn" class="zoom-button" title="Zoom In">+</button>
-            <button id="zoom-reset-btn" class="zoom-button" title="Reset Zoom">⟳</button>
-            <button id="zoom-out-btn" class="zoom-button" title="Zoom Out">-</button>
-        </div>
-
-        <div class="minimap-container" id="minimap-container">
-            <canvas id="minimap" width="150" height="150"></canvas>
-        </div>
-
-        <div class="properties-panel" id="properties-panel" style="display: none;">
-            <h3>Properties</h3>
-            <div id="properties-content"></div>
+    <!-- Modals -->
+    <div id="create-node-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="close-create-modal">&times;</span>
+            <h2>Create Custom Node</h2>
+            <form id="create-node-form" class="create-node-form">
+                <div class="form-row">
+                    <label for="custom-node-name">Node Name:</label>
+                    <input type="text" id="custom-node-name" required>
+                </div>
+                <div class="form-row">
+                    <label for="custom-node-category">Category:</label>
+                    <select id="custom-node-category">
+                        <option value="control">Control</option>
+                        <option value="decorator">Decorator</option>
+                        <option value="action">Action</option>
+                        <option value="condition">Condition</option>
+                    </select>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="cancel-btn" id="cancel-create-node">Cancel</button>
+                    <button type="submit" class="create-btn">Create</button>
+                </div>
+            </form>
         </div>
     </div>
-</div>
 
-<!-- Context Menus -->
-<div class="context-menu" id="connection-context-menu">
-    <ul>
-        <li id="delete-connection">Delete Connection</li>
-    </ul>
-</div>
-
-<div class="context-menu" id="node-type-context-menu">
-    <ul>
-        <li id="delete-node-type">Delete Custom Node Type</li>
-    </ul>
-</div>
-
-<!-- Create Custom Node Modal -->
-<div id="create-node-modal" class="modal">
-    <div class="modal-content">
-        <span class="close" id="close-create-modal">&times;</span>
-        <h2>Create Custom Node</h2>
-        <form id="create-node-form" class="create-node-form">
-            <div class="form-row">
-                <label for="custom-node-name">Node Name:</label>
-                <input type="text" id="custom-node-name" required placeholder="Enter node name">
-            </div>
-            <div class="form-row">
-                <label for="custom-node-category">Category:</label>
-                <select id="custom-node-category">
-                    <option value="control">Control</option>
-                    <option value="decorator">Decorator</option>
-                    <option value="action">Action</option>
-                    <option value="condition">Condition</option>
-                </select>
-            </div>
-            <div class="modal-buttons">
-                <button type="button" class="cancel-btn" id="cancel-create-node">Cancel</button>
-                <button type="submit" class="create-btn">Create</button>
-            </div>
-        </form>
+    <div id="xml-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="close-xml-modal">&times;</span>
+            <h2>Behavior Tree XML</h2>
+            <p>BehaviorTree.CPP compatible XML format:</p>
+            <div class="xml-content" id="xml-content"></div>
+            <button class="copy-btn" id="copy-xml-btn">Copy to Clipboard</button>
+        </div>
     </div>
-</div>
 
-<!-- XML Export Modal -->
-<div id="xml-modal" class="modal">
-    <div class="modal-content">
-        <span class="close" id="close-xml-modal">&times;</span>
-        <h2>Behavior Tree XML</h2>
-        <p>BehaviorTree.CPP compatible XML format:</p>
-        <div class="xml-content" id="xml-content"></div>
-        <button class="copy-btn" id="copy-xml-btn">Copy to Clipboard</button>
+    <!-- Context Menus -->
+    <div class="context-menu" id="connection-context-menu">
+        <ul>
+            <li id="delete-connection">Delete Connection</li>
+        </ul>
     </div>
-</div>
 
-<!-- Main entry point for the application -->
-<script type="module" src="src/index.js"></script>
+    <div class="context-menu" id="node-context-menu">
+        <ul>
+            <li id="delete-node">Delete Node</li>
+            <li id="duplicate-node">Duplicate Node</li>
+        </ul>
+    </div>
+
+    <!-- Main entry point -->
+    <script type="module" src="src/index.js"></script>
 </body>
 </html>
