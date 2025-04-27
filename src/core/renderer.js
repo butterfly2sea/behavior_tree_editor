@@ -503,11 +503,11 @@ export function initRenderer(elements, state) {
             return;
         }
 
-        // Find source node
+        // 找到源节点
         const sourceNode = nodes.find(n => n.id === pendingConnection.sourceId);
         if (!sourceNode) return;
 
-        // Get start coordinates based on port type
+        // 获取源坐标基于端口类型
         let startX, startY;
         if (pendingConnection.sourcePort === 'parent') {
             startX = sourceNode.x + config.nodeWidth / 2;
@@ -517,7 +517,7 @@ export function initRenderer(elements, state) {
             startY = sourceNode.y + config.nodeHeight;
         }
 
-        // Create path for pending connection
+        // 确保连线跟随鼠标
         const path = createSvgElement('path', {
             'fill': 'none',
             'stroke': config.connection.pendingColor,
@@ -533,11 +533,9 @@ export function initRenderer(elements, state) {
 
         path.setAttribute('d', pathData);
 
-        // Clear and add new path
+        // 清理和添加新路径
         activeConnectionLayer.innerHTML = '';
         activeConnectionLayer.appendChild(path);
-
-        // Make layer visible
         activeConnectionLayer.style.display = 'block';
     }
 
