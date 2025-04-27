@@ -235,13 +235,17 @@ export function initSerialization(elements, state) {
             const node = nodes.find(n => n.id === nodeId);
             if (!node) return null;
 
-            // Find child connections
+            // 找到子节点连接
             const childConnections = connections.filter(c => c.source === nodeId);
 
-            // Build child hierarchies
+            // 获取子节点并排序
             const children = childConnections
-                .map(conn => buildNodeHierarchy(conn.target))
-                .filter(Boolean);
+                .map(conn => {
+                    const childNode = nodes.find(n => n.id === conn.target);
+                    return childNode ? buildNodeHierarchy(conn.target) : null;
+                })
+                .filter(Boolean)
+                .sort((a, b) => a.x - b.x); // 按X坐标排序
 
             return {
                 ...node,
