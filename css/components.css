@@ -18,6 +18,12 @@ button.active {
     color: white;
 }
 
+button.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
 button i {
     margin-right: var(--spacing-sm);
 }

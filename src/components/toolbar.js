@@ -70,8 +70,37 @@ export function initToolbar(elements, state) {
         eventBus.on(EVENTS.STATE_LOADED, updateButtonStates);
     }
 
+    function updateAlignButtonsState() {
+        const selectedNodes = stateManager.getSelectedNodes();
+        const hasMultipleSelection = selectedNodes.length > 1;
+
+        // 对齐按钮列表
+        const alignButtons = [
+            'align-left-btn', 'align-center-btn', 'align-right-btn',
+            'align-top-btn', 'align-middle-btn', 'align-bottom-btn'
+        ];
+
+        // 更新每个按钮的禁用状态
+        alignButtons.forEach(btnId => {
+            const btn = document.getElementById(btnId);
+            if (btn) {
+                btn.disabled = !hasMultipleSelection;
+                if (hasMultipleSelection) {
+                    btn.classList.remove('disabled');
+                } else {
+                    btn.classList.add('disabled');
+                }
+            }
+        });
+    }
+
+    // 监听选择变化事件
+    eventBus.on(EVENTS.SELECTION_CHANGED, updateAlignButtonsState);
+
+
     // Initialize
     init();
+    updateAlignButtonsState();
     setupEventListeners();
 
     // Return public API
