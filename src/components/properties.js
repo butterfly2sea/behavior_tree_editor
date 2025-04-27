@@ -201,7 +201,14 @@ export function initPropertiesPanel(elements, state, renderer) {
         const alignmentGroup = createElement('div', {className: 'form-group'});
         alignmentGroup.appendChild(createElement('label', {}, 'Alignment'));
 
-        const buttonsContainer = createElement('div', {className: 'alignment-buttons'});
+        const buttonsContainer = createElement('div', {
+            className: 'alignment-buttons', style: {
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '5px',
+                marginTop: '8px'
+            }
+        });
 
         // Align buttons
         const alignActions = [
@@ -222,6 +229,11 @@ export function initPropertiesPanel(elements, state, renderer) {
                         action: 'align',
                         alignType: action
                     });
+                },
+                style: {
+                    flex: '1',
+                    minWidth: '70px',
+                    margin: '0 2px'
                 }
             }, [
                 createElement('i', {className: icon})
