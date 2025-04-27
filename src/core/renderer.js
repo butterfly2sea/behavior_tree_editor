@@ -5,6 +5,7 @@ import {eventBus, EVENTS} from './events.js';
 import {config} from './config.js';
 import {createSvgElement} from '../utils/dom.js';
 import {getNodeDefinition} from "../data/node-types.js";
+import {setupNodeDragAndDrop} from "../utils/drag.js";
 
 
 export function initRenderer(elements, state) {
@@ -337,6 +338,8 @@ export function initRenderer(elements, state) {
 
         // Add to canvas
         canvas.appendChild(nodeEl);
+
+        setupNodeDragAndDrop(nodeEl, {state: stateManager});
 
         // Update port visibility based on constraints
         updateNodePortVisibility(nodeEl, node);
