@@ -361,6 +361,16 @@ export function initNodes(elements, state, renderer) {
                     }
                 }
             }
+
+            // 找出所有与被拖拽节点相关的连接
+            const connections = stateManager.getConnections().filter(conn =>
+                conn.source === nodeId || conn.target === nodeId
+            );
+
+            // 请求更新这些连接
+            connections.forEach(conn => {
+                renderer.requestConnectionUpdate(conn.id);
+            });
         } else if (nodeType && nodeCategory) {
             // Create new node
             const x = worldPos.x - config.nodeWidth / 2;
