@@ -4,6 +4,7 @@
 import {eventBus, EVENTS} from '../core/events.js';
 import {logger} from '../utils/logger.js';
 import {createElement, clearElement, escapeHtml} from '../utils/dom.js';
+import {getNodeDefinition} from "../data/node-types.js";
 
 export function initPropertiesPanel(elements, state, renderer) {
     const stateManager = state;
@@ -55,129 +56,299 @@ export function initPropertiesPanel(elements, state, renderer) {
         }
 
         // Get node type definition
-        const nodeTypeDef = window.getNodeTypeDefinition ?
-            window.getNodeTypeDefinition(node.type, node.category) : null;
+        let nodeTypeDef = getNodeDefinition(node.type, node.category);
 
-        // Create node name field
-        const nameField = createPropertyField('Name', 'text', node.name, (value) => {
-            stateManager.updateNode(nodeId, {name: value});
-        });
-        propertiesContent.appendChild(nameField);
+        // 特别处理：如果找不到节点定义，尝试从NODE_TYPES和自定义节点类型中查找
+        if (!nodeTypeDef) {
+            // 从NODE_TYPES查找
+            if (window.NODE_TYPES && window.NODE_TYPES[node.category]) {
+                nodeTypeDef = window.NODE_TYPES[node.category].find(nt => nt.type === node.type);
+            }
 
-        // Create read-only type field
-        const typeField = createPropertyField('Type', 'text', node.type, null, true);
-        propertiesContent.appendChild(typeField);
-
-        // Create read-only category field
-        const categoryField = createPropertyField('Category', 'text', node.category, null, true);
-        propertiesContent.appendChild(categoryField);
-
-        // Add description if available
-        if (nodeTypeDef && nodeTypeDef.description) {
-            const descField = createPropertyArea('Description', nodeTypeDef.description, null, true);
-            propertiesContent.appendChild(descField);
+            // 如果还找不到，从自定义节点类型查找
+            if (!nodeTypeDef) {
+                nodeTypeDef = stateManager.getCustomNodeTypes().find(nt => nt.type === node.type);
+            }
         }
 
-        // Create properties section
-        const propertiesSection = createElement('div', {className: 'form-group'});
-        propertiesSection.appendChild(createElement('label', {}, 'Properties'));
+        // 创建基本信息部分
+        const basicInfoSection = createElement('div', {className: 'form-group'});
+        basicInfoSection.appendChild(createElement('h3', {}, '基本信息'));
 
-        // Add node-specific properties
+        // 创建节点名称字段
+        const nameField = createPropertyField('名称', 'text', node.name, (value) => {
+            stateManager.updateNode(nodeId, {name: value});
+        });
+        basicInfoSection.appendChild(nameField);
+
+        // 创建只读类型字段
+        const typeField = createPropertyField('类型', 'text', node.type, null, true);
+        basicInfoSection.appendChild(typeField);
+
+        // 创建只读类别字段
+        const categoryField = createPropertyField('类别', 'text', node.category, null, true);
+        basicInfoSection.appendChild(categoryField);
+
+        propertiesContent.appendChild(basicInfoSection);
+
+        // 添加描述（如果有）
+        if (nodeTypeDef && nodeTypeDef.description) {
+            const descSection = createElement('div', {className: 'form-group'});
+            descSection.appendChild(createElement('h3', {}, '描述'));
+
+            const descField = createElement('div', {
+                className: 'node-description',
+                style: {
+                    padding: '10px',
+                    background: '#f9f9f9',
+                    borderRadius: '4px',
+                    border: '1px solid #ddd',
+                    fontSize: '13px',
+                    lineHeight: '1.5'
+                }
+            }, nodeTypeDef.description);
+
+            descSection.appendChild(descField);
+            propertiesContent.appendChild(descSection);
+        }
+
+        // 创建节点属性部分
         if (nodeTypeDef && nodeTypeDef.properties && nodeTypeDef.properties.length > 0) {
+            const propsSection = createElement('div', {className: 'form-group'});
+            propsSection.appendChild(createElement('h3', {}, '节点属性'));
+
+            // 添加各个属性字段
             nodeTypeDef.properties.forEach(prop => {
+                // 确保属性存在于节点对象中
+                if (!node.properties) {
+                    node.properties = {};
+                }
+
+                // 获取当前值或默认值
                 const value = node.properties[prop.name] !== undefined ?
                     node.properties[prop.name] : (prop.default || '');
 
-                const propField = createPropertyField(
-                    prop.name,
-                    getInputTypeForPropertyType(prop.type),
-                    value,
-                    (newValue) => {
-                        // Update property
-                        const updatedProps = {...node.properties};
-                        updatedProps[prop.name] = newValue;
-                        stateManager.updateNode(nodeId, {properties: updatedProps});
-                    }
-                );
+                // 创建适当类型的输入控件
+                let propField;
 
-                propertiesSection.appendChild(propField);
+                switch (prop.type) {
+                    case 'boolean':
+                        // 为布尔类型创建复选框
+                        propField = createBooleanField(
+                            prop.name,
+                            value === 'true' || value === true,
+                            (newValue) => {
+                                updateProperty(nodeId, prop.name, newValue);
+                            }
+                        );
+                        break;
 
-                // Add description if available
+                    case 'number':
+                        // 为数字类型创建数字输入框
+                        propField = createNumberField(
+                            prop.name,
+                            value,
+                            (newValue) => {
+                                updateProperty(nodeId, prop.name, newValue);
+                            }
+                        );
+                        break;
+
+                    case 'select':
+                        // 为选择类型创建下拉框
+                        propField = createSelectField(
+                            prop.name,
+                            value,
+                            prop.options || [],
+                            (newValue) => {
+                                updateProperty(nodeId, prop.name, newValue);
+                            }
+                        );
+                        break;
+
+                    default:
+                        // 默认为文本类型
+                        propField = createPropertyField(
+                            prop.name,
+                            'text',
+                            value,
+                            (newValue) => {
+                                updateProperty(nodeId, prop.name, newValue);
+                            }
+                        );
+                }
+
+                propsSection.appendChild(propField);
+
+                // 添加属性描述
                 if (prop.description) {
-                    const descriptionEl = createElement('div', {
+                    const helpText = createElement('div', {
+                        className: 'property-help',
                         style: {
-                            marginBottom: '8px',
                             fontSize: '11px',
-                            color: '#666'
+                            color: '#666',
+                            marginBottom: '10px',
+                            marginTop: '-5px',
+                            paddingLeft: '10px'
                         }
                     }, prop.description);
-                    propertiesSection.appendChild(descriptionEl);
+
+                    propsSection.appendChild(helpText);
                 }
             });
+
+            propertiesContent.appendChild(propsSection);
         } else {
-            propertiesSection.appendChild(createElement('p', {
+            // 没有属性时显示提示
+            const noPropsMsg = createElement('div', {
+                className: 'form-group',
                 style: {
-                    fontSize: '12px',
+                    padding: '10px',
+                    background: '#f9f9f9',
+                    borderRadius: '4px',
+                    textAlign: 'center',
                     color: '#666'
                 }
-            }, 'No properties available for this node type.'));
+            }, '此节点类型没有可编辑的属性');
+
+            propertiesContent.appendChild(noPropsMsg);
         }
 
-        propertiesContent.appendChild(propertiesSection);
-
-        // Add position controls
+        // 添加位置控件
         const positionSection = createElement('div', {className: 'form-group'});
-        positionSection.appendChild(createElement('label', {}, 'Position'));
+        positionSection.appendChild(createElement('h3', {}, '位置'));
 
-        const positionControls = createElement('div', {className: 'position-controls'});
-
-        // X position
-        const xRow = createElement('div', {className: 'position-row'});
-        xRow.appendChild(createElement('label', {for: 'node-pos-x'}, 'X:'));
-        const xInput = createElement('input', {
-            type: 'number',
-            id: 'node-pos-x',
-            value: node.x,
-            onchange: (e) => {
-                const value = parseInt(e.target.value);
-                if (!isNaN(value)) {
-                    updateNodePosition(nodeId, value, null);
-                }
-            }
+        // X位置
+        const xField = createNumberField('X', node.x, (value) => {
+            updateNodePosition(nodeId, parseInt(value), null);
         });
-        xRow.appendChild(xInput);
-        positionControls.appendChild(xRow);
+        positionSection.appendChild(xField);
 
-        // Y position
-        const yRow = createElement('div', {className: 'position-row'});
-        yRow.appendChild(createElement('label', {for: 'node-pos-y'}, 'Y:'));
-        const yInput = createElement('input', {
-            type: 'number',
-            id: 'node-pos-y',
-            value: node.y,
-            onchange: (e) => {
-                const value = parseInt(e.target.value);
-                if (!isNaN(value)) {
-                    updateNodePosition(nodeId, null, value);
-                }
-            }
+        // Y位置
+        const yField = createNumberField('Y', node.y, (value) => {
+            updateNodePosition(nodeId, null, parseInt(value));
         });
-        yRow.appendChild(yInput);
-        positionControls.appendChild(yRow);
+        positionSection.appendChild(yField);
 
-        positionSection.appendChild(positionControls);
         propertiesContent.appendChild(positionSection);
 
-        // Add delete button
+        // 添加删除按钮
         const deleteButton = createElement('button', {
             id: 'delete-node-btn',
             className: 'delete-button',
+            style: {
+                width: '100%',
+                padding: '10px',
+                margin: '20px 0 0 0',
+                background: '#f44336',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+            },
             onclick: () => {
-                eventBus.emit(EVENTS.TOOLBAR_ACTION, {action: 'delete-selected'});
+                if (confirm('确定要删除此节点吗？')) {
+                    eventBus.emit(EVENTS.TOOLBAR_ACTION, {action: 'delete-selected'});
+                }
             }
-        }, 'Delete Node');
+        }, '删除节点');
 
         propertiesContent.appendChild(deleteButton);
+    }
+
+    /**
+     * 创建布尔值字段
+     */
+    function createBooleanField(label, value, onChange) {
+        const container = createElement('div', {className: 'parameter-row'});
+
+        container.appendChild(createElement('label', {
+            style: {
+                flex: '1'
+            }
+        }, label));
+
+        const input = createElement('input', {
+            type: 'checkbox',
+            checked: value,
+            onchange: onChange ? (e) => onChange(e.target.checked) : null
+        });
+
+        container.appendChild(input);
+        return container;
+    }
+
+    /**
+     * 创建数字字段
+     */
+    function createNumberField(label, value, onChange) {
+        const container = createElement('div', {className: 'parameter-row'});
+
+        container.appendChild(createElement('label', {
+            style: {
+                flex: '1'
+            }
+        }, label));
+
+        const input = createElement('input', {
+            type: 'number',
+            value: value,
+            onchange: onChange ? (e) => onChange(e.target.value) : null,
+            style: {
+                width: '120px'
+            }
+        });
+
+        container.appendChild(input);
+        return container;
+    }
+
+    /**
+     * 创建选择字段
+     */
+    function createSelectField(label, value, options, onChange) {
+        const container = createElement('div', {className: 'parameter-row'});
+
+        container.appendChild(createElement('label', {
+            style: {
+                flex: '1'
+            }
+        }, label));
+
+        const select = createElement('select', {
+            onchange: onChange ? (e) => onChange(e.target.value) : null,
+            style: {
+                width: '120px'
+            }
+        });
+
+        // 添加选项
+        options.forEach(opt => {
+            const option = createElement('option', {
+                value: opt.value || opt,
+                selected: (opt.value || opt) === value
+            }, opt.label || opt);
+
+            select.appendChild(option);
+        });
+
+        container.appendChild(select);
+        return container;
+    }
+
+    /**
+     * 更新节点属性
+     */
+    function updateProperty(nodeId, propName, value) {
+        const node = stateManager.getNodes().find(n => n.id === nodeId);
+        if (!node) return;
+
+        // 复制属性对象并更新
+        const updatedProps = {...node.properties};
+        updatedProps[propName] = value;
+
+        // 更新节点
+        stateManager.updateNode(nodeId, {properties: updatedProps});
     }
 
     /**
