@@ -355,6 +355,29 @@ input, select, textarea {
     z-index: 9999;
 }
 
+/* 添加到css/components.css */
+.port.disabled {
+    background-color: var(--color-disabled);
+    border-color: var(--color-disabled-border);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.port.disabled:hover::after {
+    content: attr(title);
+    position: absolute;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 100;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
 /* Animations */
 @keyframes shake {
     10%, 90% {

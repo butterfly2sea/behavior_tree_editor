@@ -3,7 +3,6 @@
  */
 import {eventBus, EVENTS} from '../core/events.js';
 import {logger} from '../utils/logger.js';
-import {getNodeDefinition} from '../data/node-types.js';
 
 export function initConnections(elements, state, renderer) {
     const stateManager = state;
@@ -12,13 +11,6 @@ export function initConnections(elements, state, renderer) {
      * Create a new connection
      */
     function createConnection(sourceId, targetId) {
-        // Validate connection
-        const validationResult = validateConnection(sourceId, targetId);
-        if (!validationResult.valid) {
-            logger.warn(`Invalid connection: ${validationResult.message}`);
-            showInvalidConnectionFeedback(targetId, validationResult.message);
-            return null;
-        }
 
         // Create connection object
         const id = stateManager.generateConnectionId();
@@ -30,6 +22,8 @@ export function initConnections(elements, state, renderer) {
 
         // Add to state (will trigger render through events)
         stateManager.addConnection(connection);
+        // 更新相关节点的端口状态
+        updateConnectedNodesPorts(sourceId, targetId);
 
         logger.debug(`Connection created: ${sourceId} -> ${targetId}`);
         return id;
@@ -39,7 +33,40 @@ export function initConnections(elements, state, renderer) {
      * Delete a connection
      */
     function deleteConnection(connectionId) {
+        // 获取连接详情，以便在删除后更新节点
+        const connection = stateManager.getConnections().find(c => c.id === connectionId);
+        const sourceId = connection ? connection.source : null;
+        const targetId = connection ? connection.target : null;
+
         stateManager.removeConnection(connectionId);
+
+        // 如果找到了连接，更新相关节点的端口状态
+        if (sourceId && targetId) {
+            updateConnectedNodesPorts(sourceId, targetId);
+        }
+    }
+
+    /**
+     * 更新连接到的节点的端口状态
+     */
+    function updateConnectedNodesPorts(sourceId, targetId) {
+        // 更新源节点端口
+        const sourceNodeEl = document.querySelector(`.tree-node[data-id="${sourceId}"]`);
+        if (sourceNodeEl) {
+            const sourceNode = stateManager.getNodes().find(n => n.id === sourceId);
+            if (sourceNode) {
+                renderer.updateNodePortVisibility(sourceNodeEl, sourceNode);
+            }
+        }
+
+        // 更新目标节点端口
+        const targetNodeEl = document.querySelector(`.tree-node[data-id="${targetId}"]`);
+        if (targetNodeEl) {
+            const targetNode = stateManager.getNodes().find(n => n.id === targetId);
+            if (targetNode) {
+                renderer.updateNodePortVisibility(targetNodeEl, targetNode);
+            }
+        }
     }
 
     /**
@@ -127,81 +154,6 @@ export function initConnections(elements, state, renderer) {
 
         // Emit canceled event
         eventBus.emit(EVENTS.CONNECTION_CHANGED, {type: 'canceled'});
-    }
-
-    /**
-     * Validate a potential connection
-     */
-    function validateConnection(sourceId, targetId) {
-        const nodes = stateManager.getNodes();
-        const connections = stateManager.getConnections();
-
-        // Find source and target nodes
-        const sourceNode = nodes.find(node => node.id === sourceId);
-        const targetNode = nodes.find(node => node.id === targetId);
-
-        if (!sourceNode || !targetNode) {
-            return {
-                valid: false,
-                message: '源节点或目标节点未选中'
-            };
-        }
-
-        // Cannot connect to self
-        if (sourceId === targetId) {
-            return {
-                valid: false,
-                message: '不能连接到自身'
-            };
-        }
-
-        // Check if target already has a parent
-        const targetParents = connections.filter(conn => conn.target === targetId);
-        if (targetParents.length > 0) {
-            return {
-                valid: false,
-                message: '目标节点已有一个源节点'
-            };
-        }
-
-        const sourceNodeDef = getNodeDefinition(sourceNode.type, sourceNode.category);
-        const targetNodeDef = getNodeDefinition(targetNode.type, targetNode.category);
-
-        if (!sourceNodeDef || !targetNodeDef) {
-            return {
-                valid: true, // Allow connection if definition not found
-                message: ''
-            };
-        }
-
-        // Check if source node can have children
-        if (sourceNodeDef.maxChildren === 0) {
-            return {
-                valid: false,
-                message: `${sourceNodeDef.name} 节点不能有子节点`
-            };
-        }
-
-        // Check if source node already has maximum number of children
-        if (sourceNodeDef.maxChildren !== null) {
-            const childCount = connections.filter(conn => conn.source === sourceId).length;
-            if (childCount >= sourceNodeDef.maxChildren) {
-                return {
-                    valid: false,
-                    message: `${sourceNodeDef.name} nodes can have at most ${sourceNodeDef.maxChildren} ${sourceNodeDef.maxChildren === 1 ? 'child' : 'children'}`
-                };
-            }
-        }
-
-        // Check for cycles
-        if (wouldCreateCycle(sourceId, targetId)) {
-            return {
-                valid: false,
-                message: 'Connection would create a cycle'
-            };
-        }
-
-        return {valid: true, message: ''};
     }
 
     /**
@@ -314,18 +266,20 @@ export function initConnections(elements, state, renderer) {
             if (e.target.classList.contains('port')) {
                 e.stopPropagation();
 
+                // 如果端口被禁用，不处理点击
+                if (e.target.classList.contains('disabled')) {
+                    return;
+                }
+
                 const nodeElement = e.target.closest('.tree-node');
                 if (!nodeElement) return;
 
                 const nodeId = nodeElement.getAttribute('data-id');
                 const portType = e.target.classList.contains('port-parent') ? 'parent' : 'child';
 
-                // Skip if port is disabled
-                if (e.target.classList.contains('disabled')) return;
-
                 const pendingConnection = stateManager.getState().pendingConnection;
 
-                // If no pending connection, start one
+                // 如果没有待处理连接，开始一个
                 if (!pendingConnection) {
                     const rect = elements.canvas.getBoundingClientRect();
                     const mouseX = e.clientX - rect.left;
@@ -335,7 +289,7 @@ export function initConnections(elements, state, renderer) {
                     stateManager.setMousePosition(worldPos.x, worldPos.y);
                     startPendingConnection(nodeId, portType);
                 }
-                // Otherwise complete the connection
+                // 否则完成连接
                 else {
                     completePendingConnection(nodeId, portType);
                 }
@@ -375,7 +329,6 @@ export function initConnections(elements, state, renderer) {
         startPendingConnection,
         completePendingConnection,
         resetPendingConnection,
-        validateConnection,
         findConnectionsByNode,
         findParentNode,
         findChildNodes

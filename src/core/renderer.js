@@ -2,9 +2,10 @@
  * Renderer - Manages efficient rendering
  */
 import {eventBus, EVENTS} from './events.js';
-import {logger} from '../utils/logger.js';
 import {config} from './config.js';
 import {createSvgElement} from '../utils/dom.js';
+import {getNodeDefinition} from "../data/node-types.js";
+
 
 export function initRenderer(elements, state) {
     const stateManager = state;
@@ -190,16 +191,26 @@ export function initRenderer(elements, state) {
         const nodes = stateManager.getNodes();
         const visibleArea = stateManager.getVisibleArea();
 
-        // Remove existing nodes
+        // 移除现有节点
         const existingNodes = document.querySelectorAll('.tree-node');
         existingNodes.forEach(node => node.remove());
 
-        // Create only nodes that are visible
+        // 创建仅在可视区域内的节点
         nodes.forEach(node => {
             if (isNodeVisible(node, visibleArea)) {
                 createNodeElement(node);
             }
         });
+
+        // 创建完所有节点后，更新所有端口状态
+        setTimeout(() => {
+            nodes.forEach(node => {
+                const nodeEl = document.querySelector(`.tree-node[data-id="${node.id}"]`);
+                if (nodeEl) {
+                    updateNodePortVisibility(nodeEl, node);
+                }
+            });
+        }, 0);
     }
 
     /**
@@ -351,43 +362,70 @@ export function initRenderer(elements, state) {
     }
 
     /**
-     * Update port visibility based on node constraints
+     * 更新端口可见性基于节点约束
+     * @param {HTMLElement} nodeEl - 节点DOM元素
+     * @param {Object} node - 节点数据对象
+     * @param {Function} getNodeDefFunc - 可选的节点定义获取函数，如果未提供则使用window对象
      */
-    function updateNodePortVisibility(nodeEl, node) {
-        const {getNodeDefinition} = window; // From node-types.js
-        if (!getNodeDefinition) return;
-
+    function updateNodePortVisibility(nodeEl, node, getNodeDefFunc = null) {
         const connections = stateManager.getConnections();
         const nodeDef = getNodeDefinition(node.type, node.category);
 
         if (!nodeDef) return;
 
-        // Child port visibility
+        // 子端口可见性与禁用状态
         const childPort = nodeEl.querySelector('.port-child');
         if (childPort) {
-            if (nodeDef.maxChildren === 0) {
+            // 基于节点类别的规则
+            if (node.category === 'action' || node.category === 'condition' || node.category === 'subtree') {
+                // 动作、条件和子树节点不能有子节点
                 childPort.classList.add('disabled');
-                childPort.title = 'This node cannot have children';
-            } else {
-                // Check max children constraint
+                childPort.title = `${node.category.charAt(0).toUpperCase() + node.category.slice(1)}节点不能有子节点`;
+            } else if (node.category === 'decorator') {
+                // 装饰器节点只能有一个子节点
                 const childCount = connections.filter(conn => conn.source === node.id).length;
-                if (nodeDef.maxChildren !== null && childCount >= nodeDef.maxChildren) {
+                if (childCount >= 1) {
                     childPort.classList.add('disabled');
-                    childPort.title = `Maximum children: ${nodeDef.maxChildren}`;
+                    childPort.title = '装饰器节点只能有一个子节点';
                 } else {
                     childPort.classList.remove('disabled');
                     childPort.title = '';
                 }
+            } else if (node.category === 'control') {
+                // 控制节点规则
+                if (nodeDef.maxChildren !== null) {
+                    const childCount = connections.filter(conn => conn.source === node.id).length;
+                    if (childCount >= nodeDef.maxChildren) {
+                        childPort.classList.add('disabled');
+                        childPort.title = `最多允许${nodeDef.maxChildren}个子节点`;
+                    } else {
+                        childPort.classList.remove('disabled');
+                        childPort.title = '';
+                    }
+                } else {
+                    childPort.classList.remove('disabled');
+                    childPort.title = '';
+                }
+
+                // IfThenElse和WhileDoElse的特殊规则
+                if ((node.type === 'IfThenElse' || node.type === 'WhileDoElse') && childPort) {
+                    const children = connections.filter(conn => conn.source === node.id);
+                    if (children.length >= 3) {
+                        childPort.classList.add('disabled');
+                        childPort.title = `${node.type}最多只能有3个子节点`;
+                    }
+                }
             }
         }
 
-        // Parent port visibility
+        // 父端口可见性
         const parentPort = nodeEl.querySelector('.port-parent');
         if (parentPort) {
+            // 检查节点是否已有父节点
             const hasParent = connections.some(conn => conn.target === node.id);
             if (hasParent) {
                 parentPort.classList.add('disabled');
-                parentPort.title = 'This node already has a parent';
+                parentPort.title = '此节点已有父节点';
             } else {
                 parentPort.classList.remove('disabled');
                 parentPort.title = '';
@@ -747,8 +785,9 @@ export function initRenderer(elements, state) {
         renderMinimap,
         updateCanvasDimensions,
         calculateNodesBounds,
+        updateNodePortVisibility, // 添加这一行，导出函数
 
-        // Coordinate conversion utilities
+        // 坐标转换工具
         screenToWorld: (x, y) => {
             const {scale, offsetX, offsetY} = stateManager.getViewport();
             return {
