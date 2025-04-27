@@ -59,19 +59,26 @@ export function initLayout(elements, state, renderer) {
      * This ensures state consistency after layout operations
      */
     function updateStateAfterLayout(positions) {
-        // Batch update all nodes
+        // 批量更新所有节点
         stateManager.batchUpdateNodes(positions);
 
-        // Clean up any pending operations
+        // 清理任何未完成的操作
         stateManager.cleanupAfterLayout();
 
-        // Notify about layout completion
+        // 重置任何活动的选择框
+        if (stateManager.getState().selectionBox.active) {
+            stateManager.endSelectionBox();
+            const box = document.getElementById('selection-box');
+            if (box) box.remove();
+        }
+
+        // 通知布局完成
         eventBus.emit(EVENTS.LAYOUT_CHANGED, {
             type: 'completed',
             affectedNodes: positions.map(pos => pos.id)
         });
 
-        // Force full render
+        // 强制完全渲染
         renderer.requestFullRender();
     }
 

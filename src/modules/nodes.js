@@ -307,70 +307,61 @@ export function initNodes(elements, state, renderer) {
     function handleCanvasDrop(e) {
         e.preventDefault();
 
-        // Get drop position relative to canvas
+        // 获取相对于canvas的放置位置
         const rect = elements.canvas.getBoundingClientRect();
         const clientX = e.clientX - rect.left;
         const clientY = e.clientY - rect.top;
 
-        // Convert to world coordinates
+        // 转换为世界坐标
         const worldPos = renderer.screenToWorld(clientX, clientY);
 
-        // Get dragged data
+        // 获取拖拽数据
         const nodeId = e.dataTransfer.getData('application/node-id');
         const nodeType = e.dataTransfer.getData('application/node-type');
         const nodeCategory = e.dataTransfer.getData('application/node-category');
 
         if (nodeId) {
-            // Move existing node
             const selectedNodes = stateManager.getSelectedNodes();
 
             if (selectedNodes.includes(nodeId)) {
-                // Move all selected nodes
-                const nodeToMove = stateManager.getNodes().find(n => n.id === nodeId);
-                if (nodeToMove) {
-                    const deltaX = worldPos.x - nodeToMove.x - config.nodeWidth / 2;
-                    const deltaY = worldPos.y - nodeToMove.y - config.nodeHeight / 2;
-
-                    selectedNodes.forEach(selectedId => {
-                        const node = stateManager.getNodes().find(n => n.id === selectedId);
-                        if (node) {
+                // 修改此处：直接设置位置而不是计算相对偏移
+                selectedNodes.forEach(selectedId => {
+                    const node = stateManager.getNodes().find(n => n.id === selectedId);
+                    if (node) {
+                        // 如果是被拖动的节点，直接设置到鼠标位置
+                        if (selectedId === nodeId) {
                             stateManager.updateNode(selectedId, {
-                                x: node.x + deltaX,
-                                y: node.y + deltaY
+                                x: worldPos.x - config.nodeWidth / 2,
+                                y: worldPos.y - config.nodeHeight / 2
+                            });
+                        } else {
+                            // 如果是其他选中的节点，保持相对位置
+                            const mainNode = stateManager.getNodes().find(n => n.id === nodeId);
+                            const offsetX = node.x - mainNode.x;
+                            const offsetY = node.y - mainNode.y;
+
+                            stateManager.updateNode(selectedId, {
+                                x: worldPos.x - config.nodeWidth / 2 + offsetX,
+                                y: worldPos.y - config.nodeHeight / 2 + offsetY
                             });
                         }
-                    });
-
-                    // Apply grid snapping if enabled
-                    if (stateManager.getGrid().snap) {
-                        applyGridSnapping(selectedNodes);
                     }
-                }
+                });
             } else {
-                // Move just this node
-                const node = stateManager.getNodes().find(n => n.id === nodeId);
-                if (node) {
-                    stateManager.updateNode(nodeId, {
-                        x: worldPos.x - config.nodeWidth / 2,
-                        y: worldPos.y - config.nodeHeight / 2
-                    });
-
-                    // Apply grid snapping if enabled
-                    if (stateManager.getGrid().snap) {
-                        applyGridSnapping([nodeId]);
-                    }
-                }
+                // 单个节点拖拽，直接设置位置
+                stateManager.updateNode(nodeId, {
+                    x: worldPos.x - config.nodeWidth / 2,
+                    y: worldPos.y - config.nodeHeight / 2
+                });
             }
 
-            // 找出所有与被拖拽节点相关的连接
-            const connections = stateManager.getConnections().filter(conn =>
-                conn.source === nodeId || conn.target === nodeId
-            );
+            // 应用网格对齐（如果启用）
+            if (stateManager.getGrid().snap) {
+                applyGridSnapping(selectedNodes.length > 0 ? selectedNodes : [nodeId]);
+            }
 
-            // 请求更新这些连接
-            connections.forEach(conn => {
-                renderer.requestConnectionUpdate(conn.id);
-            });
+            // 确保连线正确重绘
+            renderer.requestFullRender();
         } else if (nodeType && nodeCategory) {
             // Create new node
             const x = worldPos.x - config.nodeWidth / 2;
