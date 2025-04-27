@@ -30,7 +30,6 @@
 │   ├── utils/
 │   │   ├── dom.js        # DOM工具
 │   │   ├── drag.js       # 拖放工具
-│   │   ├── validation.js # 验证工具
 │   │   ├── logger.js     # 日志工具(合并版)
 │   │   └── helpers.js    # 通用工具函数
 │   └── data/
