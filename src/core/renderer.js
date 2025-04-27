@@ -330,6 +330,23 @@ export function initRenderer(elements, state) {
         // Update port visibility based on constraints
         updateNodePortVisibility(nodeEl, node);
 
+        nodeEl.addEventListener('click', (e) => {
+            // 如果点击的是端口，不处理选择操作
+            if (e.target.classList.contains('port')) {
+                return;
+            }
+
+            // 阻止事件冒泡到画布
+            e.stopPropagation();
+
+            // 如果按住shift，添加到选择；否则清除其他选择
+            if (!e.shiftKey) {
+                stateManager.clearSelection();
+            }
+
+            // 选择节点
+            stateManager.selectNode(node.id, e.shiftKey);
+        });
         return nodeEl;
     }
 
