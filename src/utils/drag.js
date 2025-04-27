@@ -2,12 +2,14 @@
  * Drag and Drop Utilities
  * Implements HTML5 Drag and Drop API for nodes
  */
-import {logger} from '../utils/logger.js';
+import {logger} from './logger.js';
 
 /**
  * Set up drag and drop for a node element
+ * @param {HTMLElement} nodeElement - The node element to make draggable
+ * @param {Object} options - Configuration options
  */
-export function setupNodeDragAndDrop(nodeElement, options) {
+export function setupNodeDragAndDrop(nodeElement, options = {}) {
     const {
         onDragStart,
         onDrag,
@@ -16,6 +18,7 @@ export function setupNodeDragAndDrop(nodeElement, options) {
         state
     } = options;
 
+    // Make element draggable
     nodeElement.draggable = true;
 
     // Drag start - set data and create drag image
@@ -33,25 +36,18 @@ export function setupNodeDragAndDrop(nodeElement, options) {
         e.dataTransfer.effectAllowed = 'move';
 
         // Select node if not already selected
-        const selectedNodes = state.getSelectedNodes();
-        if (!selectedNodes.includes(nodeId)) {
-            if (!e.shiftKey) {
-                state.clearSelection();
+        if (state) {
+            const selectedNodes = state.getSelectedNodes();
+            if (!selectedNodes.includes(nodeId)) {
+                if (!e.shiftKey) {
+                    state.clearSelection();
+                }
+                state.selectNode(nodeId);
             }
-            state.selectNode(nodeId);
         }
 
         // Create drag image
-        const dragImage = nodeElement.cloneNode(true);
-        dragImage.style.opacity = '0.7';
-        document.body.appendChild(dragImage);
-
-        e.dataTransfer.setDragImage(dragImage, 75, 20);
-
-        // Clean up after dragstart
-        setTimeout(() => {
-            document.body.removeChild(dragImage);
-        }, 0);
+        createDragImage(e, nodeElement);
 
         // Call callback
         if (onDragStart) onDragStart(e, nodeId);
@@ -69,21 +65,52 @@ export function setupNodeDragAndDrop(nodeElement, options) {
 }
 
 /**
+ * Create a drag image for the node
+ */
+function createDragImage(event, nodeElement) {
+    // Clone the node for the drag image
+    const dragImage = nodeElement.cloneNode(true);
+
+    // Set styles for the drag image
+    dragImage.style.opacity = '0.7';
+    dragImage.style.position = 'absolute';
+    dragImage.style.top = '-1000px'; // Place off-screen
+    dragImage.style.backgroundColor = 'rgba(255, 255, 255, 0.7)';
+
+    // Add to document temporarily
+    document.body.appendChild(dragImage);
+
+    // Set as drag image
+    event.dataTransfer.setDragImage(dragImage, dragImage.offsetWidth / 2, 20);
+
+    // Clean up after dragstart
+    setTimeout(() => {
+        document.body.removeChild(dragImage);
+    }, 0);
+}
+
+/**
  * Set up node item draggable (from the palette)
  */
 export function setupNodeItemDraggable(nodeItemElement) {
     nodeItemElement.draggable = true;
 
     nodeItemElement.addEventListener('dragstart', (e) => {
-        const type = nodeItemElement.getAttribute('data-type');
-        const category = nodeItemElement.getAttribute('data-category');
+        const type = nodeItemElement.dataset.type;
+        const category = nodeItemElement.dataset.category;
+
+        if (!type || !category) {
+            logger.warn('Missing node type or category attributes');
+            e.preventDefault();
+            return;
+        }
 
         // Set drag data
         e.dataTransfer.setData('application/node-type', type);
         e.dataTransfer.setData('application/node-category', category);
         e.dataTransfer.effectAllowed = 'copy';
 
-        // Set drag image
+        // Create drag image
         const dragImage = nodeItemElement.cloneNode(true);
         dragImage.style.opacity = '0.7';
         document.body.appendChild(dragImage);
@@ -100,14 +127,10 @@ export function setupNodeItemDraggable(nodeItemElement) {
 /**
  * Set up canvas as a drop zone
  */
-export function setupCanvasDropZone(canvasElement, options) {
-    const {
-        onDrop,
-        renderer,
-        state
-    } = options;
+export function setupCanvasDropZone(canvasElement, options = {}) {
+    const {onDrop} = options;
 
-    // Handle drag over
+    // Handle drag over (needed to allow drop)
     canvasElement.addEventListener('dragover', (e) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
@@ -116,7 +139,6 @@ export function setupCanvasDropZone(canvasElement, options) {
     // Handle drop
     canvasElement.addEventListener('drop', (e) => {
         e.preventDefault();
-
         if (onDrop) onDrop(e);
     });
 }

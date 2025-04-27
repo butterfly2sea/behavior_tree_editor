@@ -1,5 +1,5 @@
 /**
- * Dialogs Component
+ * Dialogs Component - Manages modal dialogs and context menus
  */
 import {eventBus, EVENTS} from '../core/events.js';
 import {logger} from '../utils/logger.js';
@@ -19,7 +19,7 @@ export function initDialogs(elements, state) {
      * Set up modal close buttons
      */
     function setupModalClosers() {
-        // Setup generic close button functionality
+        // Close buttons with class 'close'
         document.querySelectorAll('.modal .close').forEach(closeBtn => {
             const modal = closeBtn.closest('.modal');
             closeBtn.addEventListener('click', () => {
@@ -27,10 +27,19 @@ export function initDialogs(elements, state) {
             });
         });
 
-        // Close modals when clicking outside
+        // Close when clicking outside modal content
         window.addEventListener('click', (e) => {
             if (e.target.classList.contains('modal')) {
                 e.target.style.display = 'none';
+            }
+        });
+
+        // Close when pressing escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal').forEach(modal => {
+                    modal.style.display = 'none';
+                });
             }
         });
     }
@@ -50,6 +59,24 @@ export function initDialogs(elements, state) {
         if (nodeContextMenu) {
             setupNodeContextMenu(nodeContextMenu);
         }
+
+        // Hide all context menus when clicking elsewhere
+        document.addEventListener('click', hideAllContextMenus);
+        document.addEventListener('contextmenu', (e) => {
+            // Don't hide if the click is on a node or connection
+            if (!e.target.closest('.tree-node') && !e.target.closest('.connection-path')) {
+                hideAllContextMenus();
+            }
+        });
+    }
+
+    /**
+     * Hide all context menus
+     */
+    function hideAllContextMenus() {
+        document.querySelectorAll('.context-menu').forEach(menu => {
+            menu.style.display = 'none';
+        });
     }
 
     /**
@@ -75,9 +102,12 @@ export function initDialogs(elements, state) {
                 if (path) {
                     const rect = path.getBoundingClientRect();
 
-                    menu.style.left = `${rect.left + rect.width / 2}px`;
-                    menu.style.top = `${rect.top + rect.height / 2}px`;
-                    menu.style.display = 'block';
+                    // Position in the center of the path
+                    const centerX = rect.left + rect.width / 2;
+                    const centerY = rect.top + rect.height / 2;
+
+                    // Show the menu
+                    showContextMenu(menu, centerX, centerY);
                 }
             }
         });
@@ -127,17 +157,54 @@ export function initDialogs(elements, state) {
                     stateManager.selectNode(nodeId);
                 }
 
-                // Position and show menu
-                menu.style.left = `${e.clientX}px`;
-                menu.style.top = `${e.clientY}px`;
-                menu.style.display = 'block';
+                // Show context menu
+                showContextMenu(menu, e.clientX, e.clientY);
             }
         });
+    }
 
-        // Hide menu when clicking elsewhere
-        document.addEventListener('click', () => {
-            menu.style.display = 'none';
-        });
+    /**
+     * Show a context menu at specified position
+     */
+    function showContextMenu(menu, x, y) {
+        // Hide all context menus first
+        hideAllContextMenus();
+
+        // Position the menu
+        menu.style.left = `${x}px`;
+        menu.style.top = `${y}px`;
+
+        // Make it visible
+        menu.style.display = 'block';
+
+        // Adjust position if menu goes off-screen
+        const rect = menu.getBoundingClientRect();
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+
+        if (rect.right > windowWidth) {
+            menu.style.left = `${windowWidth - rect.width}px`;
+        }
+
+        if (rect.bottom > windowHeight) {
+            menu.style.top = `${windowHeight - rect.height}px`;
+        }
+    }
+
+    /**
+     * Show a modal by ID
+     */
+    function showModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) modal.style.display = 'block';
+    }
+
+    /**
+     * Hide a modal by ID
+     */
+    function hideModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) modal.style.display = 'none';
     }
 
     // Initialize
@@ -145,14 +212,8 @@ export function initDialogs(elements, state) {
 
     // Return public API
     return {
-        showModal: (modalId) => {
-            const modal = document.getElementById(modalId);
-            if (modal) modal.style.display = 'block';
-        },
-
-        hideModal: (modalId) => {
-            const modal = document.getElementById(modalId);
-            if (modal) modal.style.display = 'none';
-        }
+        showModal,
+        hideModal,
+        hideAllContextMenus
     };
 }

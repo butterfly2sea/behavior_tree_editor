@@ -87,8 +87,8 @@ export function initViewport(elements, state, renderer) {
         const viewport = stateManager.getViewport();
 
         stateManager.updateViewport({
-            offsetX: viewport.offsetX + deltaX,
-            offsetY: viewport.offsetY + deltaY
+            offsetX: viewport.offsetX + deltaX / viewport.scale,
+            offsetY: viewport.offsetY + deltaY / viewport.scale
         });
 
         // Request render update
@@ -155,7 +155,7 @@ export function initViewport(elements, state, renderer) {
         const contentHeight = maxY - minY;
         const scaleX = canvas.clientWidth / contentWidth;
         const scaleY = canvas.clientHeight / contentHeight;
-        const newScale = Math.min(scaleX, scaleY);
+        const newScale = Math.min(scaleX, scaleY, config.viewport.maxScale);
 
         // Calculate center point
         const centerX = (minX + maxX) / 2;
@@ -173,7 +173,7 @@ export function initViewport(elements, state, renderer) {
     }
 
     /**
-     * Set up event listeners
+     * Set up event listeners and initialize canvas dragging
      */
     function setupEventListeners() {
         // Wheel event for zooming
@@ -190,6 +190,38 @@ export function initViewport(elements, state, renderer) {
                 zoomIn(1.1, {x: mouseX, y: mouseY});
             } else {
                 zoomOut(1.1, {x: mouseX, y: mouseY});
+            }
+        });
+
+        // Middle mouse button or Alt+left mouse button for panning
+        elements.canvas.addEventListener('mousedown', (e) => {
+            if (e.button === 1 || (e.button === 0 && e.altKey)) {
+                e.preventDefault();
+
+                // Start canvas dragging
+                let initialX = e.clientX;
+                let initialY = e.clientY;
+
+                stateManager.startDragging(initialX, initialY, true);
+
+                const moveHandler = (moveEvent) => {
+                    const dx = moveEvent.clientX - initialX;
+                    const dy = moveEvent.clientY - initialY;
+                    pan(dx, dy);
+
+                    // Update initial position
+                    initialX = moveEvent.clientX;
+                    initialY = moveEvent.clientY;
+                };
+
+                const upHandler = () => {
+                    document.removeEventListener('mousemove', moveHandler);
+                    document.removeEventListener('mouseup', upHandler);
+                    stateManager.endDragging();
+                };
+
+                document.addEventListener('mousemove', moveHandler);
+                document.addEventListener('mouseup', upHandler);
             }
         });
 

@@ -355,6 +355,7 @@ export function initLayout(elements, state, renderer) {
     return {
         applyLayout,
         applyHierarchicalLayout,
-        applyForceDirectedLayout
+        applyForceDirectedLayout,
+        findRootNodes
     };
 }

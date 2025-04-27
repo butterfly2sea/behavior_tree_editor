@@ -1,11 +1,13 @@
 /**
  * State Management
+ *
+ * Handles the application state and provides methods to modify it
  */
 import {eventBus, EVENTS} from './events.js';
 import {config} from './config.js';
 import {logger} from '../utils/logger.js';
 
-// Initial state
+// Initial state definition
 const initialState = {
     // Nodes and connections
     nodes: [],
@@ -93,11 +95,12 @@ const initialState = {
     }
 };
 
-// State management
+// State management module
 export function initState() {
     // Clone initial state to avoid mutations
-    let state = JSON.parse(JSON.stringify(initialState));
+    let state = structuredClone(initialState);
 
+    // State manager API
     return {
         // =============== Getters ===============
         getState: () => state,
@@ -157,7 +160,7 @@ export function initState() {
 
         // Batch update nodes (for layout)
         batchUpdateNodes: (updates) => {
-            let updatedIds = [];
+            const updatedIds = [];
 
             updates.forEach(update => {
                 const node = state.nodes.find(n => n.id === update.id);
@@ -247,13 +250,8 @@ export function initState() {
         },
 
         // Generation of IDs
-        generateNodeId: () => {
-            return `node_${state.idCounters.nodes++}`;
-        },
-
-        generateConnectionId: () => {
-            return `conn_${state.idCounters.connections++}`;
-        },
+        generateNodeId: () => `node_${state.idCounters.nodes++}`,
+        generateConnectionId: () => `conn_${state.idCounters.connections++}`,
 
         // Pending connection
         startPendingConnection: (sourceId, sourcePort) => {
@@ -394,7 +392,7 @@ export function initState() {
             const {grid, viewport, layout, customNodeTypes, collapsedCategories} = state;
 
             // Reset to initial state
-            state = JSON.parse(JSON.stringify(initialState));
+            state = structuredClone(initialState);
 
             // Restore preserved settings
             state.grid = grid;

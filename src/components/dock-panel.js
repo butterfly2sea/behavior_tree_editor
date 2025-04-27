@@ -1,128 +1,131 @@
 /**
- * Dock Panel Component
+ * Dock Panel Component - Manages the node palette and tree view
  */
 import {eventBus, EVENTS} from '../core/events.js';
 import {logger} from '../utils/logger.js';
 import {setupNodeItemDraggable} from '../utils/drag.js';
+import {createElement, clearElement} from '../utils/dom.js';
+import {NODE_TYPES, getNodeDefinition} from "../data/node-types.js";
 
 export function initDockPanel(elements, state, nodesModule) {
     const stateManager = state;
 
     /**
-     * Initialize the node tree view
+     * Initialize the node tree view with categories and node types
      */
     function initNodeTreeView() {
         const {nodeTreeView} = elements;
         if (!nodeTreeView) return;
 
         // Clear existing tree view
-        nodeTreeView.innerHTML = '';
+        clearElement(nodeTreeView);
 
         // Get node types from the global NODE_TYPES object
-        if (!window.NODE_TYPES) {
+        if (!NODE_TYPES) {
             logger.error('NODE_TYPES not found');
             return;
         }
 
         // Create category sections
-        Object.keys(window.NODE_TYPES).forEach(category => {
+        Object.keys(NODE_TYPES).forEach(category => {
             createCategoryInTreeView(category, nodeTreeView);
         });
     }
 
     /**
-     * Create a category in the node tree view
+     * Create a category section in the tree view
      */
     function createCategoryInTreeView(category, treeView) {
         const collapsedCategories = stateManager.getState().collapsedCategories;
-
-        // Create category element
-        const categoryEl = document.createElement('div');
-        categoryEl.className = 'tree-category';
-        categoryEl.id = `category-${category}`;
+        const isCollapsed = collapsedCategories[category] || false;
 
         // Format category name for display
         const categoryName = category.charAt(0).toUpperCase() + category.slice(1);
 
-        // Create header
-        const headerEl = document.createElement('div');
-        headerEl.className = 'category-header';
-        if (collapsedCategories[category]) {
-            headerEl.classList.add('collapsed');
-        }
-
-        const toggleIcon = document.createElement('span');
-        toggleIcon.className = 'toggle-icon icon-chevron-down';
-        headerEl.appendChild(toggleIcon);
-
-        const titleEl = document.createElement('span');
-        titleEl.textContent = categoryName;
-        headerEl.appendChild(titleEl);
-
-        // Add click handler to toggle collapse
-        headerEl.addEventListener('click', () => {
-            headerEl.classList.toggle('collapsed');
-            const items = categoryEl.querySelector('.category-items');
-            items.classList.toggle('collapsed');
-
-            // Update collapsed state in state
-            stateManager.toggleCategoryCollapse(category);
+        // Create category container
+        const categoryEl = createElement('div', {
+            className: 'tree-category',
+            id: `category-${category}`
         });
 
-        categoryEl.appendChild(headerEl);
+        // Create header with toggle
+        const headerEl = createElement('div', {
+            className: `category-header ${isCollapsed ? 'collapsed' : ''}`,
+            onclick: () => toggleCategory(category, headerEl, itemsEl)
+        }, [
+            createElement('span', {className: 'toggle-icon icon-chevron-down'}),
+            createElement('span', {}, categoryName)
+        ]);
 
         // Create items container
-        const itemsEl = document.createElement('div');
-        itemsEl.className = 'category-items';
-        if (collapsedCategories[category]) {
-            itemsEl.classList.add('collapsed');
-        }
+        const itemsEl = createElement('div', {
+            className: `category-items ${isCollapsed ? 'collapsed' : ''}`
+        });
 
-        // Add node types to this category
-        if (window.NODE_TYPES[category]) {
-            window.NODE_TYPES[category].forEach(nodeType => {
+        // Add built-in node types
+        if (NODE_TYPES[category]) {
+            NODE_TYPES[category].forEach(nodeType => {
                 createNodeItemElement(nodeType, category, itemsEl);
             });
         }
 
-        // Add custom node types that belong to this category
+        // Add custom node types for this category
         stateManager.getCustomNodeTypes().forEach(nodeType => {
             if (nodeType.category === category) {
                 createNodeItemElement(nodeType, category, itemsEl);
             }
         });
 
+        // Assemble category
+        categoryEl.appendChild(headerEl);
         categoryEl.appendChild(itemsEl);
         treeView.appendChild(categoryEl);
+    }
+
+    /**
+     * Toggle category collapse state
+     */
+    function toggleCategory(category, headerEl, itemsEl) {
+        headerEl.classList.toggle('collapsed');
+        itemsEl.classList.toggle('collapsed');
+
+        // Update state
+        stateManager.toggleCategoryCollapse(category);
     }
 
     /**
      * Create a node item element in the tree view
      */
     function createNodeItemElement(nodeType, category, container) {
-        const nodeEl = document.createElement('div');
-        nodeEl.className = `node-item ${category}`;
-        nodeEl.setAttribute('data-type', nodeType.type);
-        nodeEl.setAttribute('data-category', category);
+        // Create node item element
+        const nodeEl = createElement('div', {
+            className: `node-item ${category}`,
+            dataset: {
+                type: nodeType.type,
+                category: category
+            }
+        });
 
-        // Main content
-        const contentEl = document.createElement('div');
-        contentEl.textContent = nodeType.name;
-        contentEl.style.flex = '1';
+        // Add node name
+        const contentEl = createElement('div', {
+            style: {flex: '1'}
+        }, nodeType.name);
         nodeEl.appendChild(contentEl);
 
-        // Add delete button for custom node types
+        // Add delete button for custom nodes
         if (!nodeType.builtin) {
-            const actionsEl = document.createElement('div');
-            actionsEl.className = 'node-item-actions';
+            const actionsEl = createElement('div', {
+                className: 'node-item-actions'
+            });
 
-            const deleteEl = document.createElement('span');
-            deleteEl.className = 'node-item-delete icon-trash';
-            deleteEl.title = 'Delete custom node type';
-            deleteEl.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (confirm(`Delete custom node type "${nodeType.name}"?`)) {
-                    stateManager.removeCustomNodeType(nodeType.type);
+            const deleteEl = createElement('span', {
+                className: 'node-item-delete icon-trash',
+                title: 'Delete custom node type',
+                onclick: (e) => {
+                    e.stopPropagation();
+                    if (confirm(`Delete custom node type "${nodeType.name}"?`)) {
+                        stateManager.removeCustomNodeType(nodeType.type);
+                    }
                 }
             });
 
@@ -130,9 +133,10 @@ export function initDockPanel(elements, state, nodesModule) {
             nodeEl.appendChild(actionsEl);
         }
 
-        // Set up drag and drop
+        // Set up draggable behavior
         setupNodeItemDraggable(nodeEl);
 
+        // Add to container
         container.appendChild(nodeEl);
     }
 
@@ -145,7 +149,7 @@ export function initDockPanel(elements, state, nodesModule) {
 
         dockPanel.classList.toggle('collapsed');
 
-        // Update the toggle button icon
+        // Update toggle button icon
         const toggleBtn = document.getElementById('toggle-dock-btn');
         if (toggleBtn) {
             const icon = toggleBtn.querySelector('i');
@@ -163,59 +167,6 @@ export function initDockPanel(elements, state, nodesModule) {
         if (createNodeModal) {
             createNodeModal.style.display = 'block';
         }
-    }
-
-    /**
-     * Set up event listeners
-     */
-    function setupEventListeners() {
-        // Toggle dock panel button
-        const toggleDockBtn = document.getElementById('toggle-dock-btn');
-        if (toggleDockBtn) {
-            toggleDockBtn.addEventListener('click', toggleDockPanel);
-        }
-
-        // Add custom node button
-        const addNodeBtn = document.getElementById('add-node-btn');
-        if (addNodeBtn) {
-            addNodeBtn.addEventListener('click', showCreateNodeModal);
-        }
-
-        // Create node form
-        const createNodeForm = document.getElementById('create-node-form');
-        if (createNodeForm) {
-            createNodeForm.addEventListener('submit', handleCreateNodeSubmit);
-        }
-
-        // Modal close buttons
-        const closeCreateModal = document.getElementById('close-create-modal');
-        const cancelCreateNodeBtn = document.getElementById('cancel-create-node');
-
-        if (closeCreateModal) {
-            closeCreateModal.addEventListener('click', () => {
-                const {createNodeModal} = elements;
-                if (createNodeModal) createNodeModal.style.display = 'none';
-            });
-        }
-
-        if (cancelCreateNodeBtn) {
-            cancelCreateNodeBtn.addEventListener('click', () => {
-                const {createNodeModal} = elements;
-                if (createNodeModal) createNodeModal.style.display = 'none';
-            });
-        }
-
-        // Listen for node type events
-        eventBus.on(EVENTS.NODE_CHANGED, (data) => {
-            if (data.type === 'type-added' || data.type === 'type-removed') {
-                initNodeTreeView();
-            }
-        });
-
-        // Listen for state loading
-        eventBus.on(EVENTS.STATE_LOADED, () => {
-            initNodeTreeView();
-        });
     }
 
     /**
@@ -274,6 +225,59 @@ export function initDockPanel(elements, state, nodesModule) {
         if (createNodeModal) createNodeModal.style.display = 'none';
 
         logger.info(`Created custom node type: ${name} (${category})`);
+    }
+
+    /**
+     * Set up event listeners
+     */
+    function setupEventListeners() {
+        // Toggle dock panel button
+        const toggleDockBtn = document.getElementById('toggle-dock-btn');
+        if (toggleDockBtn) {
+            toggleDockBtn.addEventListener('click', toggleDockPanel);
+        }
+
+        // Add custom node button
+        const addNodeBtn = document.getElementById('add-node-btn');
+        if (addNodeBtn) {
+            addNodeBtn.addEventListener('click', showCreateNodeModal);
+        }
+
+        // Create node form
+        const createNodeForm = document.getElementById('create-node-form');
+        if (createNodeForm) {
+            createNodeForm.addEventListener('submit', handleCreateNodeSubmit);
+        }
+
+        // Modal close buttons
+        const closeCreateModal = document.getElementById('close-create-modal');
+        const cancelCreateNodeBtn = document.getElementById('cancel-create-node');
+
+        if (closeCreateModal) {
+            closeCreateModal.addEventListener('click', () => {
+                const {createNodeModal} = elements;
+                if (createNodeModal) createNodeModal.style.display = 'none';
+            });
+        }
+
+        if (cancelCreateNodeBtn) {
+            cancelCreateNodeBtn.addEventListener('click', () => {
+                const {createNodeModal} = elements;
+                if (createNodeModal) createNodeModal.style.display = 'none';
+            });
+        }
+
+        // Listen for node type events
+        eventBus.on(EVENTS.NODE_CHANGED, (data) => {
+            if (data.type === 'type-added' || data.type === 'type-removed') {
+                initNodeTreeView();
+            }
+        });
+
+        // Listen for state loading
+        eventBus.on(EVENTS.STATE_LOADED, () => {
+            initNodeTreeView();
+        });
     }
 
     // Initialize

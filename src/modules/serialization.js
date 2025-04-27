@@ -29,15 +29,17 @@ export function initSerialization(elements, state) {
                 grid: stateManager.getGrid()
             };
 
-            // Create a Blob and download
+            // Create a Blob and download using modern File API
             const blob = new Blob([JSON.stringify(treeData, null, 2)], {type: 'application/json'});
             const url = URL.createObjectURL(blob);
 
+            // Create download link
             const a = document.createElement('a');
             a.href = url;
             a.download = 'behavior_tree.json';
             a.click();
 
+            // Clean up
             URL.revokeObjectURL(url);
 
             logger.info('Behavior tree saved successfully');
@@ -52,60 +54,59 @@ export function initSerialization(elements, state) {
      */
     function loadTree() {
         try {
+            // Create file input programmatically
             const input = document.createElement('input');
             input.type = 'file';
             input.accept = '.json';
 
-            input.onchange = (event) => {
+            input.onchange = async (event) => {
                 const file = event.target.files[0];
                 if (!file) return;
 
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    try {
-                        const data = JSON.parse(e.target.result);
+                try {
+                    // Read file using modern File API
+                    const content = await file.text();
+                    const data = JSON.parse(content);
 
-                        // Validate data
-                        if (!isValidTreeData(data)) {
-                            throw new Error('Invalid behavior tree file format');
-                        }
-
-                        // Prepare the state to load
-                        const newState = {
-                            nodes: data.nodes || [],
-                            connections: data.connections || [],
-                            customNodeTypes: data.customNodeTypes || [],
-                            collapsedCategories: data.collapsedCategories || {},
-                            grid: data.grid || stateManager.getGrid(),
-
-                            // Reset these values
-                            selectedNodes: [],
-                            selectedConnection: null,
-                            pendingConnection: null,
-
-                            // Keep current viewport
-                            viewport: stateManager.getViewport(),
-
-                            // ID counters
-                            idCounters: {
-                                nodes: calculateNextNodeId(data.nodes),
-                                connections: calculateNextConnectionId(data.connections)
-                            }
-                        };
-
-                        // Load state
-                        stateManager.loadState(newState);
-
-                        logger.info('Behavior tree loaded successfully');
-                    } catch (error) {
-                        logger.error('Error parsing tree file:', error);
-                        showErrorToast('Error parsing tree file: ' + error.message);
+                    // Validate data
+                    if (!isValidTreeData(data)) {
+                        throw new Error('Invalid behavior tree file format');
                     }
-                };
 
-                reader.readAsText(file);
+                    // Prepare the state to load
+                    const newState = {
+                        nodes: data.nodes || [],
+                        connections: data.connections || [],
+                        customNodeTypes: data.customNodeTypes || [],
+                        collapsedCategories: data.collapsedCategories || {},
+                        grid: data.grid || stateManager.getGrid(),
+
+                        // Reset these values
+                        selectedNodes: [],
+                        selectedConnection: null,
+                        pendingConnection: null,
+
+                        // Keep current viewport
+                        viewport: stateManager.getViewport(),
+
+                        // ID counters
+                        idCounters: {
+                            nodes: calculateNextNodeId(data.nodes),
+                            connections: calculateNextConnectionId(data.connections)
+                        }
+                    };
+
+                    // Load state
+                    stateManager.loadState(newState);
+
+                    logger.info('Behavior tree loaded successfully');
+                } catch (error) {
+                    logger.error('Error parsing tree file:', error);
+                    showErrorToast('Error parsing tree file: ' + error.message);
+                }
             };
 
+            // Trigger file selection
             input.click();
         } catch (error) {
             logger.error('Error loading tree:', error);
@@ -345,6 +346,7 @@ export function initSerialization(elements, state) {
     function escapeXml(str) {
         if (str === undefined || str === null) return '';
 
+        // Use safe replacement with character references
         return String(str)
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
@@ -358,11 +360,11 @@ export function initSerialization(elements, state) {
      */
     function copyXmlToClipboard() {
         const {xmlContent} = elements;
-
         if (!xmlContent) return;
 
         const textToCopy = xmlContent.textContent;
 
+        // Use modern Clipboard API
         navigator.clipboard.writeText(textToCopy)
             .then(() => {
                 // Success feedback

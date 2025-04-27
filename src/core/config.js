@@ -1,7 +1,6 @@
 /**
  * Global configuration
  */
-
 export const config = {
     // Logging
     logLevel: 'info', // debug, info, warn, error

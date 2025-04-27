@@ -50,8 +50,11 @@ export function initMinimap(elements, state, renderer) {
         const {minimap} = elements;
         if (!minimap) return;
 
-        const bounds = renderer.calculateNodesBounds(stateManager.getNodes());
         const minimapState = stateManager.getMinimap();
+
+        // Get calculated bounds from renderer
+        const nodes = stateManager.getNodes();
+        const bounds = renderer.calculateNodesBounds(nodes);
 
         // Calculate minimap scale and padding
         const padding = 10;

@@ -5,11 +5,12 @@ import {eventBus, EVENTS} from '../core/events.js';
 
 /**
  * Set up keyboard shortcuts
+ * @param {Object} state - State manager
  */
 export function setupKeyboardShortcuts(state) {
     document.addEventListener('keydown', (e) => {
         // Ignore shortcuts when typing in input fields
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        if (e.target.matches('input, textarea, [contenteditable="true"]')) {
             return;
         }
 
@@ -45,6 +46,7 @@ export function setupKeyboardShortcuts(state) {
 
 /**
  * Select all nodes
+ * @param {Object} state - State manager
  */
 function selectAllNodes(state) {
     const nodeIds = state.getNodes().map(node => node.id);
@@ -53,6 +55,7 @@ function selectAllNodes(state) {
 
 /**
  * Cancel any pending operations
+ * @param {Object} state - State manager
  */
 function cancelPendingOperations(state) {
     // Cancel pending connection
@@ -73,22 +76,72 @@ function cancelPendingOperations(state) {
     }
 
     // Hide any context menus
-    const menus = document.querySelectorAll('.context-menu');
-    menus.forEach(menu => {
+    document.querySelectorAll('.context-menu').forEach(menu => {
         menu.style.display = 'none';
     });
 }
 
 /**
  * Generate a unique ID
+ * @param {string} prefix - ID prefix
+ * @returns {string} - Unique ID
  */
 export function generateId(prefix = 'id_') {
-    return `${prefix}${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `${prefix}${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 }
 
 /**
  * Delay execution
+ * @param {number} ms - Milliseconds to delay
+ * @returns {Promise} - Promise that resolves after delay
  */
 export function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Debounce a function
+ * @param {Function} func - Function to debounce
+ * @param {number} wait - Milliseconds to wait
+ * @returns {Function} - Debounced function
+ */
+export function debounce(func, wait) {
+    let timeout;
+
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+/**
+ * Check if two objects have the same structure and values
+ * @param {Object} a - First object
+ * @param {Object} b - Second object
+ * @returns {boolean} - True if objects are equal
+ */
+export function objectsEqual(a, b) {
+    if (a === b) return true;
+
+    if (!(a instanceof Object) || !(b instanceof Object)) return false;
+
+    const keysA = Object.keys(a);
+    const keysB = Object.keys(b);
+
+    if (keysA.length !== keysB.length) return false;
+
+    return keysA.every(key => {
+        if (!b.hasOwnProperty(key)) return false;
+
+        if (a[key] instanceof Object && b[key] instanceof Object) {
+            return objectsEqual(a[key], b[key]);
+        }
+
+        return a[key] === b[key];
+    });
 }

@@ -2,7 +2,7 @@
  * BehaviorTree.CPP Editor - Main Entry Point
  */
 import {config} from './core/config.js';
-import {Logger} from './utils/logger.js';
+import {Logger, LogLevel} from './utils/logger.js';
 import {initState} from './core/state.js';
 import {eventBus, EVENTS} from './core/events.js';
 import {initRenderer} from './core/renderer.js';
@@ -63,25 +63,31 @@ function init() {
     try {
         logger.info('Initializing BehaviorTree.CPP Editor');
 
-        // Initialize modules
+        // Initialize core state
         const state = initState();
+
+        // Initialize renderer
         const renderer = initRenderer(elements, state);
 
-        // Initialize core modules
-        const viewport = initViewport(elements, state, renderer);
-        const grid = initGrid(elements, state, renderer);
-        const nodes = initNodes(elements, state, renderer);
-        const connections = initConnections(elements, state, renderer);
-        const layout = initLayout(elements, state, renderer);
-        const minimap = initMinimap(elements, state, renderer);
-        const serialization = initSerialization(elements, state);
-        const monitor = initMonitor(elements, state, renderer);
+        // Initialize modules
+        const modules = {
+            viewport: initViewport(elements, state, renderer),
+            grid: initGrid(elements, state, renderer),
+            nodes: initNodes(elements, state, renderer),
+            connections: initConnections(elements, state, renderer),
+            layout: initLayout(elements, state, renderer),
+            minimap: initMinimap(elements, state, renderer),
+            serialization: initSerialization(elements, state),
+            monitor: initMonitor(elements, state, renderer)
+        };
 
         // Initialize UI components
-        const toolbar = initToolbar(elements, state);
-        const dockPanel = initDockPanel(elements, state, nodes);
-        const propertiesPanel = initPropertiesPanel(elements, state, renderer);
-        const dialogs = initDialogs(elements, state);
+        const components = {
+            toolbar: initToolbar(elements, state),
+            dockPanel: initDockPanel(elements, state, modules.nodes),
+            propertiesPanel: initPropertiesPanel(elements, state, renderer),
+            dialogs: initDialogs(elements, state)
+        };
 
         // Setup keyboard shortcuts
         setupKeyboardShortcuts(state);
@@ -90,6 +96,15 @@ function init() {
         window.addEventListener('resize', () => {
             eventBus.emit(EVENTS.VIEWPORT_CHANGED, {type: 'resize'});
         });
+
+        // Make modules accessible globally for debugging
+        window.editor = {
+            state,
+            renderer,
+            modules,
+            components,
+            eventBus
+        };
 
         // Initial render
         renderer.requestFullRender();
@@ -103,6 +118,9 @@ function init() {
 
 // Display user-friendly error notification
 export function showErrorToast(message) {
+    // Remove existing toasts
+    document.querySelectorAll('.error-notification').forEach(toast => toast.remove());
+
     const toast = document.createElement('div');
     toast.className = 'error-notification';
     toast.innerHTML = `
@@ -114,7 +132,7 @@ export function showErrorToast(message) {
     document.body.appendChild(toast);
 
     // Automatically remove after 5 seconds
-    setTimeout(() => {
+    const autoRemoveTimeout = setTimeout(() => {
         if (toast.parentNode) {
             toast.remove();
         }
@@ -122,6 +140,7 @@ export function showErrorToast(message) {
 
     // Click to dismiss
     toast.querySelector('.error-close').addEventListener('click', () => {
+        clearTimeout(autoRemoveTimeout);
         toast.remove();
     });
 }

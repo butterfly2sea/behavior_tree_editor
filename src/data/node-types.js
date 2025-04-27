@@ -372,60 +372,19 @@ export function getDefaultConstraintsForCategory(category) {
 }
 
 /**
- * Check if a connection is valid based on node types
- * @param {Object} sourceNode - Source node
- * @param {Object} targetNode - Target node
- * @param {Array} connections - Existing connections
- * @returns {Object} - { valid: boolean, message: string }
- */
-export function isConnectionValid(sourceNode, targetNode, connections) {
-    // Get node definitions
-    const sourceNodeDef = getNodeDefinition(sourceNode.type, sourceNode.category);
-    const targetNodeDef = getNodeDefinition(targetNode.type, targetNode.category);
-
-    if (!sourceNodeDef || !targetNodeDef) {
-        return {valid: false, message: 'Invalid node type'};
-    }
-
-    // Leaf nodes can't have children
-    if (sourceNodeDef.maxChildren === 0) {
-        return {valid: false, message: `${sourceNodeDef.name} nodes can't have children`};
-    }
-
-    // Check if source node already has max children
-    if (sourceNodeDef.maxChildren !== null) {
-        const childCount = connections.filter(conn => conn.source === sourceNode.id).length;
-        if (childCount >= sourceNodeDef.maxChildren) {
-            return {
-                valid: false,
-                message: `${sourceNodeDef.name} nodes can have at most ${sourceNodeDef.maxChildren} ${sourceNodeDef.maxChildren === 1 ? 'child' : 'children'}`
-            };
-        }
-    }
-
-    // Check if target already has a parent
-    const targetParents = connections.filter(conn => conn.target === targetNode.id);
-    if (targetParents.length > 0) {
-        return {valid: false, message: 'Node already has a parent'};
-    }
-
-    return {valid: true, message: ''};
-}
-
-/**
  * Get node definition from type and category
  * @param {string} type - Node type
  * @param {string} category - Node category
- * @returns {Object} - Node definition
+ * @returns {Object|null} - Node definition or null if not found
  */
 export function getNodeDefinition(type, category) {
-    // First check built-in types in our exported NODE_TYPES
+    // First check built-in types
     if (NODE_TYPES[category]) {
         const builtInType = NODE_TYPES[category].find(nt => nt.type === type);
         if (builtInType) return builtInType;
     }
 
-    // If using in the browser with window global state
+    // Check custom node types in state
     if (typeof window !== 'undefined' && window.state && window.state.customNodeTypes) {
         return window.state.customNodeTypes.find(nt => nt.type === type);
     }

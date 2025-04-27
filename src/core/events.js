@@ -1,8 +1,8 @@
 /**
- * Simplified Event System
+ * Event System using standard EventTarget API
  */
 
-// Event types
+// Event types constants
 export const EVENTS = {
     // State events
     STATE_CHANGED: 'state:changed',
@@ -33,52 +33,57 @@ export const EVENTS = {
     CONTEXT_MENU: 'ui:context-menu'
 };
 
-// Simple event bus
-class EventBus {
+// Custom event bus using standard EventTarget
+class EventBus extends EventTarget {
     constructor() {
-        this.listeners = new Map();
+        super();
         this.history = []; // Keep track of recent events for debugging
         this.maxHistory = 10;
     }
 
-    on(event, callback) {
-        if (!this.listeners.has(event)) {
-            this.listeners.set(event, []);
-        }
-        this.listeners.get(event).push(callback);
-        return () => this.off(event, callback); // Return unsubscribe function
+    /**
+     * Subscribe to an event
+     * @param {string} eventName - Name of the event
+     * @param {Function} callback - Event handler function
+     * @returns {Function} - Unsubscribe function
+     */
+    on(eventName, callback) {
+        const handler = (event) => callback(event.detail);
+        this.addEventListener(eventName, handler);
+
+        // Return unsubscribe function
+        return () => this.off(eventName, handler);
     }
 
-    off(event, callback) {
-        if (!this.listeners.has(event)) return;
-
-        const callbacks = this.listeners.get(event);
-        const index = callbacks.indexOf(callback);
-        if (index !== -1) {
-            callbacks.splice(index, 1);
-        }
+    /**
+     * Unsubscribe from an event
+     * @param {string} eventName - Name of the event
+     * @param {Function} handler - Event handler function
+     */
+    off(eventName, handler) {
+        this.removeEventListener(eventName, handler);
     }
 
-    emit(event, data = {}) {
+    /**
+     * Emit an event
+     * @param {string} eventName - Name of the event
+     * @param {any} data - Event data
+     */
+    emit(eventName, data = {}) {
         // Record event for debugging
-        this.history.unshift({event, data, time: new Date()});
+        this.history.unshift({event: eventName, data, time: new Date()});
         if (this.history.length > this.maxHistory) {
             this.history.pop();
         }
 
-        if (!this.listeners.has(event)) return;
-
-        // Call all registered listeners
-        this.listeners.get(event).forEach(callback => {
-            try {
-                callback(data);
-            } catch (error) {
-                console.error(`Error in event listener for ${event}:`, error);
-            }
-        });
+        const event = new CustomEvent(eventName, {detail: data});
+        this.dispatchEvent(event);
     }
 
-    // For debugging
+    /**
+     * Get recent events for debugging
+     * @returns {Array} - Array of recent events
+     */
     getRecentEvents() {
         return [...this.history];
     }

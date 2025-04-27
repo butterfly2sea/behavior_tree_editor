@@ -1,8 +1,9 @@
 /**
- * Properties Panel Component
+ * Properties Panel Component - Manages node properties editing
  */
 import {eventBus, EVENTS} from '../core/events.js';
 import {logger} from '../utils/logger.js';
+import {createElement, clearElement, escapeHtml} from '../utils/dom.js';
 
 export function initPropertiesPanel(elements, state, renderer) {
     const stateManager = state;
@@ -44,6 +45,9 @@ export function initPropertiesPanel(elements, state, renderer) {
     function renderSingleNodeProperties(nodeId) {
         const {propertiesContent} = elements;
 
+        // Clear panel
+        clearElement(propertiesContent);
+
         const node = stateManager.getNodes().find(n => n.id === nodeId);
         if (!node) {
             propertiesContent.innerHTML = '<p>Selected node not found</p>';
@@ -51,89 +55,129 @@ export function initPropertiesPanel(elements, state, renderer) {
         }
 
         // Get node type definition
-        const {getNodeTypeDefinition} = window; // From node-types.js
-        const nodeDef = getNodeTypeDefinition ?
-            getNodeTypeDefinition(node.type, node.category) : null;
+        const nodeTypeDef = window.getNodeTypeDefinition ?
+            window.getNodeTypeDefinition(node.type, node.category) : null;
 
-        // Start building HTML content
-        let html = `
-      <div class="form-group">
-        <label for="node-name">Name</label>
-        <input type="text" id="node-name" value="${escapeHtml(node.name)}" />
-      </div>
-      <div class="form-group">
-        <label>Type</label>
-        <input type="text" value="${escapeHtml(node.type)}" readonly />
-      </div>
-      <div class="form-group">
-        <label>Category</label>
-        <input type="text" value="${escapeHtml(node.category)}" readonly />
-      </div>
-    `;
+        // Create node name field
+        const nameField = createPropertyField('Name', 'text', node.name, (value) => {
+            stateManager.updateNode(nodeId, {name: value});
+        });
+        propertiesContent.appendChild(nameField);
+
+        // Create read-only type field
+        const typeField = createPropertyField('Type', 'text', node.type, null, true);
+        propertiesContent.appendChild(typeField);
+
+        // Create read-only category field
+        const categoryField = createPropertyField('Category', 'text', node.category, null, true);
+        propertiesContent.appendChild(categoryField);
 
         // Add description if available
-        if (nodeDef && nodeDef.description) {
-            html += `
-        <div class="form-group">
-          <label>Description</label>
-          <textarea readonly>${escapeHtml(nodeDef.description)}</textarea>
-        </div>
-      `;
+        if (nodeTypeDef && nodeTypeDef.description) {
+            const descField = createPropertyArea('Description', nodeTypeDef.description, null, true);
+            propertiesContent.appendChild(descField);
         }
 
-        // Add type-specific properties
-        html += `<div class="form-group"><label>Properties</label>`;
+        // Create properties section
+        const propertiesSection = createElement('div', {className: 'form-group'});
+        propertiesSection.appendChild(createElement('label', {}, 'Properties'));
 
-        if (nodeDef && nodeDef.properties && nodeDef.properties.length > 0) {
-            nodeDef.properties.forEach(prop => {
+        // Add node-specific properties
+        if (nodeTypeDef && nodeTypeDef.properties && nodeTypeDef.properties.length > 0) {
+            nodeTypeDef.properties.forEach(prop => {
                 const value = node.properties[prop.name] !== undefined ?
                     node.properties[prop.name] : (prop.default || '');
 
-                html += `
-          <div class="parameter-row">
-            <label>${escapeHtml(prop.name)}</label>
-            <input type="text" class="property-value" data-name="${escapeHtml(prop.name)}" 
-                   data-type="${escapeHtml(prop.type || 'string')}" 
-                   value="${escapeHtml(value)}" />
-          </div>
-          <div style="margin-bottom: 8px; font-size: 11px; color: #666;">
-            ${escapeHtml(prop.description || '')}
-          </div>
-        `;
+                const propField = createPropertyField(
+                    prop.name,
+                    getInputTypeForPropertyType(prop.type),
+                    value,
+                    (newValue) => {
+                        // Update property
+                        const updatedProps = {...node.properties};
+                        updatedProps[prop.name] = newValue;
+                        stateManager.updateNode(nodeId, {properties: updatedProps});
+                    }
+                );
+
+                propertiesSection.appendChild(propField);
+
+                // Add description if available
+                if (prop.description) {
+                    const descriptionEl = createElement('div', {
+                        style: {
+                            marginBottom: '8px',
+                            fontSize: '11px',
+                            color: '#666'
+                        }
+                    }, prop.description);
+                    propertiesSection.appendChild(descriptionEl);
+                }
             });
         } else {
-            html += `<p style="font-size: 12px; color: #666;">No properties available for this node type.</p>`;
+            propertiesSection.appendChild(createElement('p', {
+                style: {
+                    fontSize: '12px',
+                    color: '#666'
+                }
+            }, 'No properties available for this node type.'));
         }
 
-        html += `</div>`;
+        propertiesContent.appendChild(propertiesSection);
 
-        // Add position information
-        html += `
-      <div class="form-group">
-        <label>Position</label>
-        <div class="position-controls">
-          <div class="position-row">
-            <label for="node-pos-x">X:</label>
-            <input type="number" id="node-pos-x" value="${node.x}" />
-          </div>
-          <div class="position-row">
-            <label for="node-pos-y">Y:</label>
-            <input type="number" id="node-pos-y" value="${node.y}" />
-          </div>
-        </div>
-      </div>
-    `;
+        // Add position controls
+        const positionSection = createElement('div', {className: 'form-group'});
+        positionSection.appendChild(createElement('label', {}, 'Position'));
+
+        const positionControls = createElement('div', {className: 'position-controls'});
+
+        // X position
+        const xRow = createElement('div', {className: 'position-row'});
+        xRow.appendChild(createElement('label', {for: 'node-pos-x'}, 'X:'));
+        const xInput = createElement('input', {
+            type: 'number',
+            id: 'node-pos-x',
+            value: node.x,
+            onchange: (e) => {
+                const value = parseInt(e.target.value);
+                if (!isNaN(value)) {
+                    updateNodePosition(nodeId, value, null);
+                }
+            }
+        });
+        xRow.appendChild(xInput);
+        positionControls.appendChild(xRow);
+
+        // Y position
+        const yRow = createElement('div', {className: 'position-row'});
+        yRow.appendChild(createElement('label', {for: 'node-pos-y'}, 'Y:'));
+        const yInput = createElement('input', {
+            type: 'number',
+            id: 'node-pos-y',
+            value: node.y,
+            onchange: (e) => {
+                const value = parseInt(e.target.value);
+                if (!isNaN(value)) {
+                    updateNodePosition(nodeId, null, value);
+                }
+            }
+        });
+        yRow.appendChild(yInput);
+        positionControls.appendChild(yRow);
+
+        positionSection.appendChild(positionControls);
+        propertiesContent.appendChild(positionSection);
 
         // Add delete button
-        html += `
-      <button id="delete-node-btn" class="delete-button">Delete Node</button>
-    `;
+        const deleteButton = createElement('button', {
+            id: 'delete-node-btn',
+            className: 'delete-button',
+            onclick: () => {
+                eventBus.emit(EVENTS.TOOLBAR_ACTION, {action: 'delete-selected'});
+            }
+        }, 'Delete Node');
 
-        // Set HTML content
-        propertiesContent.innerHTML = html;
-
-        // Add event listeners for property changes
-        attachSingleNodeEventListeners(nodeId);
+        propertiesContent.appendChild(deleteButton);
     }
 
     /**
@@ -142,155 +186,115 @@ export function initPropertiesPanel(elements, state, renderer) {
     function renderMultiNodeProperties(nodeIds) {
         const {propertiesContent} = elements;
 
-        // Build HTML content for multi-selection
-        let html = `
-      <div class="form-group">
-        <label>Multiple Selection</label>
-        <p>${nodeIds.length} nodes selected</p>
-      </div>
-      
-      <div class="form-group">
-        <label>Alignment</label>
-        <div class="alignment-buttons">
-          <button id="prop-align-left-btn" title="Align Left">
-            <i class="icon-align-left"></i>
-          </button>
-          <button id="prop-align-center-btn" title="Align Center">
-            <i class="icon-align-center"></i>
-          </button>
-          <button id="prop-align-right-btn" title="Align Right">
-            <i class="icon-align-right"></i>
-          </button>
-          <button id="prop-align-top-btn" title="Align Top">
-            <i class="icon-align-top"></i>
-          </button>
-          <button id="prop-align-middle-btn" title="Align Middle">
-            <i class="icon-align-center"></i>
-          </button>
-          <button id="prop-align-bottom-btn" title="Align Bottom">
-            <i class="icon-align-bottom"></i>
-          </button>
-        </div>
-      </div>
-      
-      <button id="delete-selected-nodes-btn" class="delete-button">
-        Delete ${nodeIds.length} Node${nodeIds.length > 1 ? 's' : ''}
-      </button>
-    `;
+        // Clear panel
+        clearElement(propertiesContent);
 
-        // Set HTML content
-        propertiesContent.innerHTML = html;
+        // Selection info
+        const selectionInfo = createElement('div', {className: 'form-group'}, [
+            createElement('label', {}, 'Multiple Selection'),
+            createElement('p', {}, `${nodeIds.length} nodes selected`)
+        ]);
 
-        // Add event listeners for multi-selection
-        attachMultiNodeEventListeners();
-    }
+        propertiesContent.appendChild(selectionInfo);
 
-    /**
-     * Attach event listeners for single node properties
-     */
-    function attachSingleNodeEventListeners(nodeId) {
-        // Node name change
-        const nameInput = document.getElementById('node-name');
-        if (nameInput) {
-            nameInput.addEventListener('change', e => {
-                updateNodeInfo(nodeId, {name: e.target.value});
-            });
-        }
-
-        // Position changes
-        const posXInput = document.getElementById('node-pos-x');
-        const posYInput = document.getElementById('node-pos-y');
-
-        if (posXInput) {
-            posXInput.addEventListener('change', e => {
-                const value = parseInt(e.target.value);
-                if (!isNaN(value)) {
-                    updateNodePosition(nodeId, value, null);
-                }
-            });
-        }
-
-        if (posYInput) {
-            posYInput.addEventListener('change', e => {
-                const value = parseInt(e.target.value);
-                if (!isNaN(value)) {
-                    updateNodePosition(nodeId, null, value);
-                }
-            });
-        }
-
-        // Property value changes
-        document.querySelectorAll('.property-value').forEach(input => {
-            input.addEventListener('change', e => {
-                const propName = e.target.getAttribute('data-name');
-                const propType = e.target.getAttribute('data-type');
-                const value = e.target.value;
-
-                // Validate property value based on type
-                const {validateNodeProperty} = window; // From validation.js
-                if (!validateNodeProperty || validateNodeProperty(value, propType)) {
-                    updateNodeProperty(nodeId, propName, value);
-                } else {
-                    // Revert to previous value if invalid
-                    const node = stateManager.getNodes().find(n => n.id === nodeId);
-                    if (node) {
-                        e.target.value = node.properties[propName] || '';
-                    }
-
-                    alert(`Invalid value for ${propType} property: ${propName}`);
-                }
-            });
-        });
-
-        // Delete button
-        const deleteBtn = document.getElementById('delete-node-btn');
-        if (deleteBtn) {
-            deleteBtn.addEventListener('click', () => {
-                eventBus.emit(EVENTS.TOOLBAR_ACTION, {action: 'delete-selected'});
-            });
-        }
-    }
-
-    /**
-     * Attach event listeners for multiple node properties
-     */
-    function attachMultiNodeEventListeners() {
         // Alignment buttons
-        const alignButtons = {
-            'prop-align-left-btn': 'left',
-            'prop-align-center-btn': 'center',
-            'prop-align-right-btn': 'right',
-            'prop-align-top-btn': 'top',
-            'prop-align-middle-btn': 'middle',
-            'prop-align-bottom-btn': 'bottom'
-        };
+        const alignmentGroup = createElement('div', {className: 'form-group'});
+        alignmentGroup.appendChild(createElement('label', {}, 'Alignment'));
 
-        Object.entries(alignButtons).forEach(([btnId, alignType]) => {
-            const button = document.getElementById(btnId);
-            if (button) {
-                button.addEventListener('click', () => {
+        const buttonsContainer = createElement('div', {className: 'alignment-buttons'});
+
+        // Align buttons
+        const alignActions = [
+            {id: 'prop-align-left-btn', title: 'Align Left', action: 'left', icon: 'icon-align-left'},
+            {id: 'prop-align-center-btn', title: 'Align Center', action: 'center', icon: 'icon-align-center'},
+            {id: 'prop-align-right-btn', title: 'Align Right', action: 'right', icon: 'icon-align-right'},
+            {id: 'prop-align-top-btn', title: 'Align Top', action: 'top', icon: 'icon-align-top'},
+            {id: 'prop-align-middle-btn', title: 'Align Middle', action: 'middle', icon: 'icon-align-middle'},
+            {id: 'prop-align-bottom-btn', title: 'Align Bottom', action: 'bottom', icon: 'icon-align-bottom'}
+        ];
+
+        alignActions.forEach(({id, title, action, icon}) => {
+            const button = createElement('button', {
+                id,
+                title,
+                onclick: () => {
                     eventBus.emit(EVENTS.TOOLBAR_ACTION, {
                         action: 'align',
-                        alignType
+                        alignType: action
                     });
-                });
-            }
+                }
+            }, [
+                createElement('i', {className: icon})
+            ]);
+
+            buttonsContainer.appendChild(button);
         });
 
-        // Delete button
-        const deleteBtn = document.getElementById('delete-selected-nodes-btn');
-        if (deleteBtn) {
-            deleteBtn.addEventListener('click', () => {
+        alignmentGroup.appendChild(buttonsContainer);
+        propertiesContent.appendChild(alignmentGroup);
+
+        // Delete selected nodes button
+        const deleteButton = createElement('button', {
+            id: 'delete-selected-nodes-btn',
+            className: 'delete-button',
+            onclick: () => {
                 eventBus.emit(EVENTS.TOOLBAR_ACTION, {action: 'delete-selected'});
-            });
-        }
+            }
+        }, `Delete ${nodeIds.length} Node${nodeIds.length > 1 ? 's' : ''}`);
+
+        propertiesContent.appendChild(deleteButton);
     }
 
     /**
-     * Update node basic information
+     * Create a property field with label and input
      */
-    function updateNodeInfo(nodeId, updates) {
-        stateManager.updateNode(nodeId, updates);
+    function createPropertyField(label, type, value, onChange, readonly = false) {
+        const container = createElement('div', {className: 'parameter-row'});
+
+        container.appendChild(createElement('label', {}, label));
+
+        const input = createElement('input', {
+            type: type,
+            className: 'property-value',
+            value: value,
+            readonly: readonly,
+            onchange: onChange ? (e) => onChange(e.target.value) : null
+        });
+
+        container.appendChild(input);
+        return container;
+    }
+
+    /**
+     * Create a property textarea with label
+     */
+    function createPropertyArea(label, value, onChange, readonly = false) {
+        const container = createElement('div', {className: 'form-group'});
+
+        container.appendChild(createElement('label', {}, label));
+
+        const textarea = createElement('textarea', {
+            readonly: readonly,
+            onchange: onChange ? (e) => onChange(e.target.value) : null
+        }, value);
+
+        container.appendChild(textarea);
+        return container;
+    }
+
+    /**
+     * Get HTML input type based on property type
+     */
+    function getInputTypeForPropertyType(propType) {
+        switch (propType) {
+            case 'boolean':
+                return 'checkbox';
+            case 'number':
+            case 'integer':
+                return 'number';
+            default:
+                return 'text';
+        }
     }
 
     /**
@@ -315,32 +319,14 @@ export function initPropertiesPanel(elements, state, renderer) {
     }
 
     /**
-     * Update a node property
-     */
-    function updateNodeProperty(nodeId, propName, value) {
-        const node = stateManager.getNodes().find(n => n.id === nodeId);
-        if (!node) return;
-
-        // Create copy of properties and update
-        const properties = {...node.properties};
-        properties[propName] = value;
-
-        stateManager.updateNode(nodeId, {properties});
-    }
-
-    /**
      * Set up event listeners
      */
     function setupEventListeners() {
         // Listen for selection changes
-        eventBus.on(EVENTS.SELECTION_CHANGED, () => {
-            updatePropertiesPanel();
-        });
+        eventBus.on(EVENTS.SELECTION_CHANGED, updatePropertiesPanel);
 
         // Listen for node updates
-        eventBus.on(EVENTS.NODE_CHANGED, () => {
-            updatePropertiesPanel();
-        });
+        eventBus.on(EVENTS.NODE_CHANGED, updatePropertiesPanel);
     }
 
     // Initialize
@@ -350,18 +336,4 @@ export function initPropertiesPanel(elements, state, renderer) {
     return {
         updatePropertiesPanel
     };
-}
-
-/**
- * Escape HTML special characters
- */
-function escapeHtml(str) {
-    if (str === undefined || str === null) return '';
-
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
 }

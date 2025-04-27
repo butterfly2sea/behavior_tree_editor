@@ -1,9 +1,8 @@
 /**
- * Logger utility
- * Provides consistent logging with levels and formatting
+ * Logger Utility
  */
 
-// Define log levels
+// Log levels
 export const LogLevel = {
     DEBUG: 0,
     INFO: 1,
@@ -15,11 +14,16 @@ export const LogLevel = {
 export class Logger {
     /**
      * Create a new logger
-     * @param {number} level - Minimum log level (default: INFO)
+     * @param {number|string} level - Minimum log level (default: INFO)
      * @param {boolean} enableTimestamp - Whether to include timestamps (default: true)
      */
     constructor(level = LogLevel.INFO, enableTimestamp = true) {
-        this.level = level;
+        // Convert string level to numeric if needed
+        if (typeof level === 'string') {
+            this.level = LogLevel[level.toUpperCase()] || LogLevel.INFO;
+        } else {
+            this.level = level;
+        }
         this.enableTimestamp = enableTimestamp;
     }
 
@@ -129,3 +133,6 @@ export class Logger {
         return result;
     }
 }
+
+// Create a default logger instance
+export const logger = new Logger(LogLevel.INFO);

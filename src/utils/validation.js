@@ -86,15 +86,12 @@ export function validateNodeProperty(value, type, constraints = {}) {
 
         case 'boolean':
             // Check if value is a valid boolean
-            if (value === true || value === false) {
-                return true;
-            }
-
-            if (value === 'true' || value === 'false') {
-                return true;
-            }
-
-            return false;
+            return (
+                value === true ||
+                value === false ||
+                value === 'true' ||
+                value === 'false'
+            );
 
         case 'enum':
             // Check if value is in allowed values
@@ -199,4 +196,52 @@ function wouldCreateCycle(sourceId, targetId, connections) {
     }
 
     return false;
+}
+
+/**
+ * Validate form data
+ * @param {Object} formData - Form data to validate
+ * @param {Object} schema - Validation schema
+ * @returns {Object} - {valid: boolean, errors: Object}
+ */
+export function validateForm(formData, schema) {
+    const errors = {};
+    let valid = true;
+
+    // Validate each field against schema
+    Object.entries(schema).forEach(([field, rules]) => {
+        const value = formData[field];
+
+        // Check required
+        if (rules.required && (value === undefined || value === null || value === '')) {
+            errors[field] = `${field} is required`;
+            valid = false;
+            return;
+        }
+
+        // Skip further validation if value is empty and not required
+        if (value === undefined || value === null || value === '') {
+            return;
+        }
+
+        // Check type
+        if (rules.type) {
+            const typeValid = validateNodeProperty(value, rules.type, rules);
+            if (!typeValid) {
+                errors[field] = `${field} is not a valid ${rules.type}`;
+                valid = false;
+            }
+        }
+
+        // Check custom validator
+        if (rules.validator && typeof rules.validator === 'function') {
+            const customValid = rules.validator(value, formData);
+            if (!customValid) {
+                errors[field] = rules.message || `${field} is invalid`;
+                valid = false;
+            }
+        }
+    });
+
+    return {valid, errors};
 }

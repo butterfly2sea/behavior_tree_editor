@@ -3,7 +3,6 @@
  */
 import {eventBus, EVENTS} from '../core/events.js';
 import {logger} from '../utils/logger.js';
-import {config} from '../core/config.js';
 
 export function initConnections(elements, state, renderer) {
     const stateManager = state;
@@ -124,6 +123,9 @@ export function initConnections(elements, state, renderer) {
         stateManager.clearPendingConnection();
         elements.activeConnectionLayer.style.display = 'none';
         elements.activeConnectionLayer.innerHTML = '';
+
+        // Emit canceled event
+        eventBus.emit(EVENTS.CONNECTION_CHANGED, {type: 'canceled'});
     }
 
     /**
@@ -345,6 +347,21 @@ export function initConnections(elements, state, renderer) {
             if (e.key === 'Escape' && stateManager.getState().pendingConnection) {
                 resetPendingConnection();
             }
+        });
+
+        // Update pending connection on mouse move
+        document.addEventListener('mousemove', (e) => {
+            // Only update if there's a pending connection
+            if (!stateManager.getState().pendingConnection) return;
+
+            // Get mouse position in world coordinates
+            const rect = elements.canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            const worldPos = renderer.screenToWorld(mouseX, mouseY);
+
+            stateManager.setMousePosition(worldPos.x, worldPos.y);
+            renderer.renderPendingConnection();
         });
     }
 

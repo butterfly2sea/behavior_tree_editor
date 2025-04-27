@@ -5,6 +5,7 @@ import {eventBus, EVENTS} from '../core/events.js';
 import {logger} from '../utils/logger.js';
 import {config} from '../core/config.js';
 import {setupNodeDragAndDrop} from '../utils/drag.js';
+import {NODE_TYPES} from "../data/node-types.js";
 
 export function initNodes(elements, state, renderer) {
     const stateManager = state;
@@ -240,9 +241,9 @@ export function initNodes(elements, state, renderer) {
      * Get node type definition
      */
     function getNodeTypeDefinition(type, category) {
-        // Check in window.NODE_TYPES (from node-types.js)
-        if (window.NODE_TYPES && window.NODE_TYPES[category]) {
-            const builtInType = window.NODE_TYPES[category].find(nt => nt.type === type);
+        // Check in NODE_TYPES (from node-types.js)
+        if (NODE_TYPES && NODE_TYPES[category]) {
+            const builtInType = NODE_TYPES[category].find(nt => nt.type === type);
             if (builtInType) return builtInType;
         }
 
@@ -254,6 +255,22 @@ export function initNodes(elements, state, renderer) {
      * Set up event listeners
      */
     function setupEventListeners() {
+        // Canvas drop event
+        elements.canvas.addEventListener('drop', handleCanvasDrop);
+        elements.canvas.addEventListener('dragover', e => e.preventDefault());
+
+        // Selection box events
+        elements.canvas.addEventListener('mousedown', handleCanvasMouseDown);
+        document.addEventListener('mousemove', handleDocumentMouseMove);
+        document.addEventListener('mouseup', handleDocumentMouseUp);
+
+        // Delete key handler (event is in keyboard shortcuts)
+        eventBus.on(EVENTS.TOOLBAR_ACTION, data => {
+            if (data.action === 'delete-selected') {
+                deleteSelectedNodes();
+            }
+        });
+
         // Align buttons
         const alignButtons = {
             'align-left-btn': 'left',
@@ -270,224 +287,234 @@ export function initNodes(elements, state, renderer) {
                 button.addEventListener('click', () => alignNodes(alignType));
             }
         });
+    }
 
-        // Delete key handler (event is in keyboard shortcuts)
-        eventBus.on(EVENTS.TOOLBAR_ACTION, (data) => {
-            if (data.action === 'delete-selected') {
-                deleteSelectedNodes();
-            }
-        });
+    /**
+     * Handle canvas drop event
+     */
+    function handleCanvasDrop(e) {
+        e.preventDefault();
 
-        // Canvas drop event
-        elements.canvas.addEventListener('drop', (e) => {
-            e.preventDefault();
+        // Get drop position relative to canvas
+        const rect = elements.canvas.getBoundingClientRect();
+        const clientX = e.clientX - rect.left;
+        const clientY = e.clientY - rect.top;
 
-            // Get drop position relative to canvas
-            const rect = elements.canvas.getBoundingClientRect();
-            const clientX = e.clientX - rect.left;
-            const clientY = e.clientY - rect.top;
+        // Convert to world coordinates
+        const worldPos = renderer.screenToWorld(clientX, clientY);
 
-            // Convert to world coordinates
-            const worldPos = renderer.screenToWorld(clientX, clientY);
+        // Get dragged data
+        const nodeId = e.dataTransfer.getData('application/node-id');
+        const nodeType = e.dataTransfer.getData('application/node-type');
+        const nodeCategory = e.dataTransfer.getData('application/node-category');
 
-            // Get dragged data
-            const nodeId = e.dataTransfer.getData('application/node-id');
-            const nodeType = e.dataTransfer.getData('application/node-type');
-            const nodeCategory = e.dataTransfer.getData('application/node-category');
+        if (nodeId) {
+            // Move existing node
+            const selectedNodes = stateManager.getSelectedNodes();
 
-            if (nodeId) {
-                // Move existing node
-                const selectedNodes = stateManager.getSelectedNodes();
+            if (selectedNodes.includes(nodeId)) {
+                // Move all selected nodes
+                const nodeToMove = stateManager.getNodes().find(n => n.id === nodeId);
+                if (nodeToMove) {
+                    const deltaX = worldPos.x - nodeToMove.x - config.nodeWidth / 2;
+                    const deltaY = worldPos.y - nodeToMove.y - config.nodeHeight / 2;
 
-                if (selectedNodes.includes(nodeId)) {
-                    // Move all selected nodes
-                    const nodeToMove = stateManager.getNodes().find(n => n.id === nodeId);
-                    if (nodeToMove) {
-                        const deltaX = worldPos.x - nodeToMove.x - config.nodeWidth / 2;
-                        const deltaY = worldPos.y - nodeToMove.y - config.nodeHeight / 2;
-
-                        selectedNodes.forEach(selectedId => {
-                            const node = stateManager.getNodes().find(n => n.id === selectedId);
-                            if (node) {
-                                stateManager.updateNode(selectedId, {
-                                    x: node.x + deltaX,
-                                    y: node.y + deltaY
-                                });
-                            }
-                        });
-
-                        // Apply grid snapping if enabled
-                        if (stateManager.getGrid().snap) {
-                            applyGridSnapping(selectedNodes);
+                    selectedNodes.forEach(selectedId => {
+                        const node = stateManager.getNodes().find(n => n.id === selectedId);
+                        if (node) {
+                            stateManager.updateNode(selectedId, {
+                                x: node.x + deltaX,
+                                y: node.y + deltaY
+                            });
                         }
-                    }
-                } else {
-                    // Move just this node
-                    const node = stateManager.getNodes().find(n => n.id === nodeId);
-                    if (node) {
-                        stateManager.updateNode(nodeId, {
-                            x: worldPos.x - config.nodeWidth / 2,
-                            y: worldPos.y - config.nodeHeight / 2
-                        });
+                    });
 
-                        // Apply grid snapping if enabled
-                        if (stateManager.getGrid().snap) {
-                            applyGridSnapping([nodeId]);
-                        }
+                    // Apply grid snapping if enabled
+                    if (stateManager.getGrid().snap) {
+                        applyGridSnapping(selectedNodes);
                     }
                 }
-            } else if (nodeType && nodeCategory) {
-                // Create new node
-                const x = worldPos.x - config.nodeWidth / 2;
-                const y = worldPos.y - config.nodeHeight / 2;
+            } else {
+                // Move just this node
+                const node = stateManager.getNodes().find(n => n.id === nodeId);
+                if (node) {
+                    stateManager.updateNode(nodeId, {
+                        x: worldPos.x - config.nodeWidth / 2,
+                        y: worldPos.y - config.nodeHeight / 2
+                    });
 
-                // Apply grid snapping if enabled
-                let finalX = x, finalY = y;
-                if (stateManager.getGrid().snap) {
-                    const grid = stateManager.getGrid();
-                    finalX = Math.round(x / grid.size) * grid.size;
-                    finalY = Math.round(y / grid.size) * grid.size;
+                    // Apply grid snapping if enabled
+                    if (stateManager.getGrid().snap) {
+                        applyGridSnapping([nodeId]);
+                    }
                 }
-
-                createNode(nodeType, nodeCategory, finalX, finalY);
             }
-        });
+        } else if (nodeType && nodeCategory) {
+            // Create new node
+            const x = worldPos.x - config.nodeWidth / 2;
+            const y = worldPos.y - config.nodeHeight / 2;
 
-        // Selection box events
-        elements.canvas.addEventListener('mousedown', (e) => {
-            // Skip if clicking on a node or port
-            if (e.target.closest('.tree-node') || e.target.closest('.port')) {
-                return;
-            }
-
-            // Skip if using middle button or alt key (pan instead)
-            if (e.button === 1 || e.altKey) {
-                return;
+            // Apply grid snapping if enabled
+            let finalX = x, finalY = y;
+            if (stateManager.getGrid().snap) {
+                const grid = stateManager.getGrid();
+                finalX = Math.round(x / grid.size) * grid.size;
+                finalY = Math.round(y / grid.size) * grid.size;
             }
 
-            // Get canvas-relative coordinates
-            const rect = elements.canvas.getBoundingClientRect();
-            const clientX = e.clientX - rect.left;
-            const clientY = e.clientY - rect.top;
+            createNode(nodeType, nodeCategory, finalX, finalY);
+        }
+    }
 
-            // Convert to world coordinates
-            const worldPos = renderer.screenToWorld(clientX, clientY);
-
-            // Clear selection if not holding shift
-            if (!e.shiftKey) {
-                stateManager.clearSelection();
-            }
-
-            // Start selection box
-            stateManager.startSelectionBox(worldPos.x, worldPos.y);
-
-            // Create visual selection box
-            createSelectionBoxElement(clientX, clientY);
-        });
-
-        function createSelectionBoxElement(startX, startY) {
-            // Remove existing selection box if any
-            const existingBox = document.getElementById('selection-box');
-            if (existingBox) existingBox.remove();
-
-            // Create selection box element
-            const selectionBox = document.createElement('div');
-            selectionBox.id = 'selection-box';
-            selectionBox.className = 'selection-box';
-            selectionBox.style.left = `${startX}px`;
-            selectionBox.style.top = `${startY}px`;
-            selectionBox.style.width = '0';
-            selectionBox.style.height = '0';
-
-            elements.canvas.appendChild(selectionBox);
+    /**
+     * Handle canvas mousedown event
+     */
+    function handleCanvasMouseDown(e) {
+        // Skip if clicking on a node or port
+        if (e.target.closest('.tree-node') || e.target.closest('.port')) {
+            return;
         }
 
-        // Mouse move for selection box
-        document.addEventListener('mousemove', (e) => {
-            if (!stateManager.getState().selectionBox.active) return;
-
-            const rect = elements.canvas.getBoundingClientRect();
-            const clientX = e.clientX - rect.left;
-            const clientY = e.clientY - rect.top;
-
-            // Convert to world coordinates
-            const worldPos = renderer.screenToWorld(clientX, clientY);
-
-            // Update selection box
-            stateManager.updateSelectionBox(worldPos.x, worldPos.y);
-
-            // Update visual selection box
-            updateSelectionBoxVisual();
-        });
-
-        function updateSelectionBoxVisual() {
-            const selectionBox = document.getElementById('selection-box');
-            if (!selectionBox) return;
-
-            const boxState = stateManager.getState().selectionBox;
-            const viewport = stateManager.getViewport();
-
-            // Convert world coordinates to screen coordinates
-            const startScreen = renderer.worldToScreen(boxState.startX, boxState.startY);
-            const endScreen = renderer.worldToScreen(boxState.endX, boxState.endY);
-
-            // Calculate box dimensions
-            const left = Math.min(startScreen.x, endScreen.x);
-            const top = Math.min(startScreen.y, endScreen.y);
-            const width = Math.abs(endScreen.x - startScreen.x);
-            const height = Math.abs(endScreen.y - startScreen.y);
-
-            // Update element style
-            selectionBox.style.left = `${left}px`;
-            selectionBox.style.top = `${top}px`;
-            selectionBox.style.width = `${width}px`;
-            selectionBox.style.height = `${height}px`;
+        // Skip if using middle button or alt key (pan instead)
+        if (e.button === 1 || e.altKey) {
+            return;
         }
 
-        // Mouse up for selection box
-        document.addEventListener('mouseup', (e) => {
-            if (!stateManager.getState().selectionBox.active) return;
+        // Get canvas-relative coordinates
+        const rect = elements.canvas.getBoundingClientRect();
+        const clientX = e.clientX - rect.left;
+        const clientY = e.clientY - rect.top;
 
-            // Select nodes within the box
-            selectNodesInBox();
+        // Convert to world coordinates
+        const worldPos = renderer.screenToWorld(clientX, clientY);
 
-            // End selection box
-            stateManager.endSelectionBox();
+        // Clear selection if not holding shift
+        if (!e.shiftKey) {
+            stateManager.clearSelection();
+        }
 
-            // Remove visual selection box
-            const selectionBox = document.getElementById('selection-box');
-            if (selectionBox) selectionBox.remove();
+        // Start selection box
+        stateManager.startSelectionBox(worldPos.x, worldPos.y);
+
+        // Create visual selection box
+        createSelectionBoxElement(clientX, clientY);
+    }
+
+    /**
+     * Create selection box element
+     */
+    function createSelectionBoxElement(startX, startY) {
+        // Remove existing selection box if any
+        const existingBox = document.getElementById('selection-box');
+        if (existingBox) existingBox.remove();
+
+        // Create selection box element
+        const selectionBox = document.createElement('div');
+        selectionBox.id = 'selection-box';
+        selectionBox.className = 'selection-box';
+        selectionBox.style.left = `${startX}px`;
+        selectionBox.style.top = `${startY}px`;
+        selectionBox.style.width = '0';
+        selectionBox.style.height = '0';
+
+        elements.canvas.appendChild(selectionBox);
+    }
+
+    /**
+     * Handle document mousemove event
+     */
+    function handleDocumentMouseMove(e) {
+        if (!stateManager.getState().selectionBox.active) return;
+
+        const rect = elements.canvas.getBoundingClientRect();
+        const clientX = e.clientX - rect.left;
+        const clientY = e.clientY - rect.top;
+
+        // Convert to world coordinates
+        const worldPos = renderer.screenToWorld(clientX, clientY);
+
+        // Update selection box
+        stateManager.updateSelectionBox(worldPos.x, worldPos.y);
+
+        // Update visual selection box
+        updateSelectionBoxVisual();
+    }
+
+    /**
+     * Update visual selection box
+     */
+    function updateSelectionBoxVisual() {
+        const selectionBox = document.getElementById('selection-box');
+        if (!selectionBox) return;
+
+        const boxState = stateManager.getState().selectionBox;
+        const viewport = stateManager.getViewport();
+
+        // Convert world coordinates to screen coordinates
+        const startScreen = renderer.worldToScreen(boxState.startX, boxState.startY);
+        const endScreen = renderer.worldToScreen(boxState.endX, boxState.endY);
+
+        // Calculate box dimensions
+        const left = Math.min(startScreen.x, endScreen.x);
+        const top = Math.min(startScreen.y, endScreen.y);
+        const width = Math.abs(endScreen.x - startScreen.x);
+        const height = Math.abs(endScreen.y - startScreen.y);
+
+        // Update element style
+        selectionBox.style.left = `${left}px`;
+        selectionBox.style.top = `${top}px`;
+        selectionBox.style.width = `${width}px`;
+        selectionBox.style.height = `${height}px`;
+    }
+
+    /**
+     * Handle document mouseup event
+     */
+    function handleDocumentMouseUp(e) {
+        if (!stateManager.getState().selectionBox.active) return;
+
+        // Select nodes within the box
+        selectNodesInBox();
+
+        // End selection box
+        stateManager.endSelectionBox();
+
+        // Remove visual selection box
+        const selectionBox = document.getElementById('selection-box');
+        if (selectionBox) selectionBox.remove();
+    }
+
+    /**
+     * Select nodes within the selection box
+     */
+    function selectNodesInBox() {
+        const boxState = stateManager.getState().selectionBox;
+        const nodes = stateManager.getNodes();
+
+        // Calculate box boundaries
+        const left = Math.min(boxState.startX, boxState.endX);
+        const top = Math.min(boxState.startY, boxState.endY);
+        const right = Math.max(boxState.startX, boxState.endX);
+        const bottom = Math.max(boxState.startY, boxState.endY);
+
+        // Find nodes within the box
+        const nodesInBox = [];
+
+        nodes.forEach(node => {
+            const nodeRight = node.x + config.nodeWidth;
+            const nodeBottom = node.y + config.nodeHeight;
+
+            // Check if node is within box (even partially)
+            if (nodeRight >= left && node.x <= right && nodeBottom >= top && node.y <= bottom) {
+                nodesInBox.push(node.id);
+            }
         });
 
-        function selectNodesInBox() {
-            const boxState = stateManager.getState().selectionBox;
-            const nodes = stateManager.getNodes();
-
-            // Calculate box boundaries
-            const left = Math.min(boxState.startX, boxState.endX);
-            const top = Math.min(boxState.startY, boxState.endY);
-            const right = Math.max(boxState.startX, boxState.endX);
-            const bottom = Math.max(boxState.startY, boxState.endY);
-
-            // Find nodes within the box
-            const nodesInBox = [];
-
-            nodes.forEach(node => {
-                const nodeRight = node.x + config.nodeWidth;
-                const nodeBottom = node.y + config.nodeHeight;
-
-                // Check if node is within box (even partially)
-                if (nodeRight >= left && node.x <= right && nodeBottom >= top && node.y <= bottom) {
-                    nodesInBox.push(node.id);
-                }
-            });
-
-            // Add to existing selection or create new selection
-            if (nodesInBox.length > 0) {
-                const existingSelection = stateManager.getSelectedNodes();
-                const combinedSelection = [...new Set([...existingSelection, ...nodesInBox])];
-                stateManager.selectNodes(combinedSelection);
-            }
+        // Add to existing selection or create new selection
+        if (nodesInBox.length > 0) {
+            const existingSelection = stateManager.getSelectedNodes();
+            const combinedSelection = [...new Set([...existingSelection, ...nodesInBox])];
+            stateManager.selectNodes(combinedSelection);
         }
     }
 

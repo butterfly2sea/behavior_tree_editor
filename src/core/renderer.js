@@ -4,6 +4,7 @@
 import {eventBus, EVENTS} from './events.js';
 import {logger} from '../utils/logger.js';
 import {config} from './config.js';
+import {createSvgElement} from '../utils/dom.js';
 
 export function initRenderer(elements, state) {
     const stateManager = state;
@@ -326,8 +327,6 @@ export function initRenderer(elements, state) {
         // Add to canvas
         canvas.appendChild(nodeEl);
 
-        // Add event listeners (moved to utils/drag.js)
-
         // Update port visibility based on constraints
         updateNodePortVisibility(nodeEl, node);
 
@@ -338,11 +337,11 @@ export function initRenderer(elements, state) {
      * Update port visibility based on node constraints
      */
     function updateNodePortVisibility(nodeEl, node) {
-        const {getNodeTypeDefinition} = window; // From node-types.js
-        if (!getNodeTypeDefinition) return;
+        const {getNodeDefinition} = window; // From node-types.js
+        if (!getNodeDefinition) return;
 
         const connections = stateManager.getConnections();
-        const nodeDef = getNodeTypeDefinition(node.type, node.category);
+        const nodeDef = getNodeDefinition(node.type, node.category);
 
         if (!nodeDef) return;
 
@@ -432,14 +431,15 @@ export function initRenderer(elements, state) {
         if (!sourceNode || !targetNode) return null;
 
         // Create path element
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('class', 'connection-path');
-        path.setAttribute('fill', 'none');
-        path.setAttribute('stroke', connection.id === selectedConnection ?
-            config.connection.selectedColor :
-            config.connection.normalColor);
-        path.setAttribute('stroke-width', config.connection.strokeWidth);
-        path.setAttribute('data-id', connection.id);
+        const path = createSvgElement('path', {
+            'class': 'connection-path',
+            'fill': 'none',
+            'stroke': connection.id === selectedConnection ?
+                config.connection.selectedColor :
+                config.connection.normalColor,
+            'stroke-width': config.connection.strokeWidth,
+            'data-id': connection.id
+        });
 
         // Generate path data
         const pathData = generateConnectionPath(sourceNode, targetNode);
@@ -501,11 +501,12 @@ export function initRenderer(elements, state) {
         }
 
         // Create path for pending connection
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('fill', 'none');
-        path.setAttribute('stroke', config.connection.pendingColor);
-        path.setAttribute('stroke-width', config.connection.strokeWidth);
-        path.setAttribute('stroke-dasharray', '5,5');
+        const path = createSvgElement('path', {
+            'fill': 'none',
+            'stroke': config.connection.pendingColor,
+            'stroke-width': config.connection.strokeWidth,
+            'stroke-dasharray': '5,5'
+        });
 
         // Generate curve
         const deltaY = mousePos.y - startY;
@@ -730,6 +731,7 @@ export function initRenderer(elements, state) {
         renderGrid,
         renderMinimap,
         updateCanvasDimensions,
+        calculateNodesBounds,
 
         // Coordinate conversion utilities
         screenToWorld: (x, y) => {
