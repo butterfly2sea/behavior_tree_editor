@@ -75,12 +75,24 @@ export function initNodes(elements, state, renderer) {
      * Delete selected nodes
      */
     function deleteSelectedNodes() {
-        const selectedNodes = stateManager.getSelectedNodes();
+        // 获取选择的节点ID并创建副本，避免在删除过程中数组被修改
+        const selectedNodes = [...stateManager.getSelectedNodes()];
 
         if (selectedNodes.length === 0) return;
 
-        deleteNodes(selectedNodes);
+        // 记录日志
+        logger.debug(`删除选中的节点: ${selectedNodes.length}个`);
+
+        // 首先清除选择，避免删除过程中的状态不一致
         stateManager.clearSelection();
+
+        // 删除节点
+        selectedNodes.forEach(nodeId => {
+            stateManager.removeNode(nodeId);
+        });
+
+        // 请求完全重新渲染
+        renderer.requestFullRender();
     }
 
     /**
