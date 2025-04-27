@@ -105,19 +105,20 @@ export function setupNodeItemDraggable(nodeItemElement) {
             return;
         }
 
-        // Set drag data
+        // 设置拖拽数据
         e.dataTransfer.setData('application/node-type', type);
         e.dataTransfer.setData('application/node-category', category);
         e.dataTransfer.effectAllowed = 'copy';
 
-        // Create drag image
+        // 创建拖拽图像 - 保持与原节点一致，只修改透明度
         const dragImage = nodeItemElement.cloneNode(true);
         dragImage.style.opacity = '0.7';
+        dragImage.classList.add('drag-image'); // 添加CSS类
         document.body.appendChild(dragImage);
 
         e.dataTransfer.setDragImage(dragImage, dragImage.offsetWidth / 2, dragImage.offsetHeight / 2);
 
-        // Clean up after dragstart
+        // 清理
         setTimeout(() => {
             document.body.removeChild(dragImage);
         }, 0);

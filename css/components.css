@@ -343,6 +343,18 @@ input, select, textarea {
     margin-top: var(--spacing-lg);
 }
 
+/* 拖拽图像样式 */
+.drag-image {
+    position: absolute;
+    top: -1000px;
+    width: var(--node-width);
+    height: var(--node-height);
+    background-color: inherit;
+    border-radius: 5px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    z-index: 9999;
+}
+
 /* Animations */
 @keyframes shake {
     10%, 90% {
