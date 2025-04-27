@@ -5,10 +5,15 @@ import {eventBus, EVENTS} from '../core/events.js';
 import {logger} from '../utils/logger.js';
 import {setupNodeItemDraggable} from '../utils/drag.js';
 import {createElement, clearElement} from '../utils/dom.js';
-import {NODE_TYPES, getNodeDefinition} from "../data/node-types.js";
+import {
+    NODE_TYPES,
+    getDefaultPropertiesForCategory,
+    getDefaultConstraintsForCategory
+} from "../data/node-types.js";
 
 export function initDockPanel(elements, state, nodesModule) {
     const stateManager = state;
+    let currentNodeProperties = [];
 
     /**
      * Initialize the node tree view with categories and node types
@@ -251,17 +256,9 @@ export function initDockPanel(elements, state, nodesModule) {
         // Create a unique type identifier
         const type = `Custom_${name.replace(/\s+/g, '')}`;
 
-        // Get default properties and constraints
-        const {getDefaultPropertiesForCategory, getDefaultConstraintsForCategory} = window;
+        const properties = getDefaultPropertiesForCategory(category);
 
-        const properties = getDefaultPropertiesForCategory ?
-            getDefaultPropertiesForCategory(category) : [];
-
-        const constraints = getDefaultConstraintsForCategory ?
-            getDefaultConstraintsForCategory(category) : {
-                maxChildren: null,
-                canBeChildless: true
-            };
+        const constraints = getDefaultConstraintsForCategory(category);
 
         // Create new node type
         const newNodeType = {
@@ -287,8 +284,9 @@ export function initDockPanel(elements, state, nodesModule) {
         logger.info(`Created custom node type: ${name} (${category})`);
     }
 
+
     /**
-     * Set up event listeners
+     * 设置事件监听器
      */
     function setupEventListeners() {
         // Toggle dock panel button
@@ -338,10 +336,291 @@ export function initDockPanel(elements, state, nodesModule) {
         eventBus.on(EVENTS.STATE_LOADED, () => {
             initNodeTreeView();
         });
+        // 添加属性相关的事件处理
+        const closePropertyModal = document.getElementById('close-property-modal');
+        const cancelAddProperty = document.getElementById('cancel-add-property');
+
+        if (closePropertyModal) {
+            closePropertyModal.addEventListener('click', () => {
+                const modal = document.getElementById('add-property-modal');
+                if (modal) modal.style.display = 'none';
+            });
+        }
+
+        if (cancelAddProperty) {
+            cancelAddProperty.addEventListener('click', () => {
+                const modal = document.getElementById('add-property-modal');
+                if (modal) modal.style.display = 'none';
+            });
+        }
     }
+
+    /**
+     * 初始化创建节点模态框
+     */
+    function initCreateNodeModal() {
+        const createNodeForm = document.getElementById('create-node-form');
+        const categorySelect = document.getElementById('custom-node-category');
+        const propertiesContainer = document.getElementById('node-properties-container');
+        const addPropertyBtn = document.getElementById('add-property-btn');
+
+        // 当类别变化时，显示默认属性
+        if (categorySelect) {
+            categorySelect.addEventListener('change', () => {
+                const category = categorySelect.value;
+                loadDefaultProperties(category);
+            });
+        }
+
+        // 添加属性按钮
+        if (addPropertyBtn) {
+            addPropertyBtn.addEventListener('click', showAddPropertyModal);
+        }
+
+        // 创建节点表单提交
+        if (createNodeForm) {
+            createNodeForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+
+                const nameInput = document.getElementById('custom-node-name');
+                const categorySelect = document.getElementById('custom-node-category');
+                const descriptionInput = document.getElementById('custom-node-description');
+
+                if (!nameInput || !categorySelect) return;
+
+                const name = nameInput.value.trim();
+                const category = categorySelect.value;
+                const description = descriptionInput ? descriptionInput.value.trim() : '';
+
+                if (!name || !category) {
+                    alert('名称和类别是必填项');
+                    return;
+                }
+
+                // 创建唯一类型标识符
+                const type = `Custom_${name.replace(/\s+/g, '')}`;
+
+                // 获取约束
+                const constraints = getDefaultConstraintsForCategory(category);
+
+                // 创建新的节点类型
+                const newNodeType = {
+                    type,
+                    name,
+                    category,
+                    builtin: false,
+                    description: description || `自定义${category}节点`,
+                    properties: currentNodeProperties,
+                    maxChildren: constraints.maxChildren,
+                    canBeChildless: constraints.canBeChildless
+                };
+
+                // 添加到自定义节点类型
+                stateManager.addCustomNodeType(newNodeType);
+
+                // 重置表单并关闭模态框
+                nameInput.value = '';
+                if (descriptionInput) descriptionInput.value = '';
+                currentNodeProperties = [];
+                updatePropertiesList();
+
+                const {createNodeModal} = elements;
+                if (createNodeModal) createNodeModal.style.display = 'none';
+
+                logger.info(`创建了自定义节点类型: ${name} (${category})`);
+            });
+        }
+
+        // 初始加载默认属性
+        if (categorySelect) {
+            loadDefaultProperties(categorySelect.value);
+        }
+    }
+
+    /**
+     * 加载分类的默认属性
+     */
+    function loadDefaultProperties(category) {
+        currentNodeProperties = [];
+
+        // 根据类别获取默认属性
+        const defaultProperties = getDefaultPropertiesForCategory(category);
+        if (defaultProperties && defaultProperties.length > 0) {
+            currentNodeProperties = [...defaultProperties];
+        }
+
+        // 更新属性列表UI
+        updatePropertiesList();
+    }
+
+    /**
+     * 更新属性列表显示
+     */
+    function updatePropertiesList() {
+        const container = document.getElementById('node-properties-container');
+        if (!container) return;
+
+        // 清空容器
+        container.innerHTML = '';
+
+        if (currentNodeProperties.length === 0) {
+            container.innerHTML = '<p>没有属性。点击"添加属性"按钮添加。</p>';
+            return;
+        }
+
+        // 创建属性列表
+        const table = document.createElement('table');
+        table.className = 'properties-table';
+        table.innerHTML = `
+      <thead>
+        <tr>
+          <th>名称</th>
+          <th>类型</th>
+          <th>默认值</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    `;
+
+        const tbody = table.querySelector('tbody');
+
+        // 添加每个属性
+        currentNodeProperties.forEach((prop, index) => {
+            const row = document.createElement('tr');
+
+            row.innerHTML = `
+        <td>${prop.name}</td>
+        <td>${prop.type}</td>
+        <td>${prop.default || ''}</td>
+        <td>
+          <button type="button" class="edit-prop-btn" data-index="${index}">编辑</button>
+          <button type="button" class="delete-prop-btn" data-index="${index}">删除</button>
+        </td>
+      `;
+
+            tbody.appendChild(row);
+        });
+
+        container.appendChild(table);
+
+        // 绑定编辑和删除按钮事件
+        container.querySelectorAll('.edit-prop-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                editProperty(index);
+            });
+        });
+
+        container.querySelectorAll('.delete-prop-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                deleteProperty(index);
+            });
+        });
+    }
+
+    /**
+     * 显示添加属性模态框
+     */
+    function showAddPropertyModal() {
+        const modal = document.getElementById('add-property-modal');
+        if (modal) {
+            // 重置表单
+            const form = document.getElementById('add-property-form');
+            if (form) form.reset();
+
+            modal.style.display = 'block';
+
+            // 设置表单提交事件
+            form.onsubmit = (e) => {
+                e.preventDefault();
+
+                const name = document.getElementById('property-name').value.trim();
+                const type = document.getElementById('property-type').value;
+                const defaultValue = document.getElementById('property-default').value.trim();
+                const description = document.getElementById('property-description').value.trim();
+
+                if (!name) {
+                    alert('属性名是必填项');
+                    return;
+                }
+
+                // 添加新属性
+                currentNodeProperties.push({
+                    name,
+                    type,
+                    default: defaultValue,
+                    description
+                });
+
+                // 更新列表并关闭模态框
+                updatePropertiesList();
+                modal.style.display = 'none';
+            };
+        }
+    }
+
+    /**
+     * 编辑属性
+     */
+    function editProperty(index) {
+        const property = currentNodeProperties[index];
+        if (!property) return;
+
+        const modal = document.getElementById('add-property-modal');
+        if (modal) {
+            // 填充表单
+            document.getElementById('property-name').value = property.name;
+            document.getElementById('property-type').value = property.type;
+            document.getElementById('property-default').value = property.default || '';
+            document.getElementById('property-description').value = property.description || '';
+
+            modal.style.display = 'block';
+
+            // 设置表单提交事件
+            document.getElementById('add-property-form').onsubmit = (e) => {
+                e.preventDefault();
+
+                const name = document.getElementById('property-name').value.trim();
+                const type = document.getElementById('property-type').value;
+                const defaultValue = document.getElementById('property-default').value.trim();
+                const description = document.getElementById('property-description').value.trim();
+
+                if (!name) {
+                    alert('属性名是必填项');
+                    return;
+                }
+
+                // 更新属性
+                currentNodeProperties[index] = {
+                    name,
+                    type,
+                    default: defaultValue,
+                    description
+                };
+
+                // 更新列表并关闭模态框
+                updatePropertiesList();
+                modal.style.display = 'none';
+            };
+        }
+    }
+
+    /**
+     * 删除属性
+     */
+    function deleteProperty(index) {
+        if (confirm('确定要删除此属性吗？')) {
+            currentNodeProperties.splice(index, 1);
+            updatePropertiesList();
+        }
+    }
+
 
     // Initialize
     initNodeTreeView();
+    initCreateNodeModal();
     setupEventListeners();
 
     // Return public API
