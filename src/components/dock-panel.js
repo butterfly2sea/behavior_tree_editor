@@ -115,19 +115,79 @@ export function initDockPanel(elements, state, nodesModule) {
         // Add delete button for custom nodes
         if (!nodeType.builtin) {
             const actionsEl = createElement('div', {
-                className: 'node-item-actions'
-            });
-
-            const deleteEl = createElement('span', {
-                className: 'node-item-delete icon-trash',
-                title: 'Delete custom node type',
-                onclick: (e) => {
-                    e.stopPropagation();
-                    if (confirm(`Delete custom node type "${nodeType.name}"?`)) {
-                        stateManager.removeCustomNodeType(nodeType.type);
-                    }
+                className: 'node-item-actions',
+                style: {
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px'
                 }
             });
+
+            // 创建删除按钮 - 添加更多视觉反馈和确认
+            const deleteEl = createElement('button', {
+                className: 'node-delete-btn',
+                title: '删除自定义节点类型',
+                style: {
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'red',
+                    cursor: 'pointer',
+                    padding: '2px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                },
+                onclick: (e) => {
+                    e.stopPropagation(); // 阻止事件冒泡
+
+                    // 显示自定义确认对话框而不是使用原生confirm
+                    const confirmDialog = document.createElement('div');
+                    confirmDialog.className = 'confirm-dialog';
+                    confirmDialog.style = `
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: white;
+          padding: 20px;
+          border-radius: 5px;
+          box-shadow: 0 0 10px rgba(0,0,0,0.3);
+          z-index: 1000;
+        `;
+
+                    confirmDialog.innerHTML = `
+          <h3>确认删除</h3>
+          <p>确定要删除自定义节点类型 "${nodeType.name}" 吗？</p>
+          <div class="confirm-buttons" style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
+            <button id="cancel-delete">取消</button>
+            <button id="confirm-delete" style="background: #f44336; color: white; border: none; padding: 5px 10px;">删除</button>
+          </div>
+        `;
+
+                    document.body.appendChild(confirmDialog);
+
+                    // 绑定确认对话框按钮事件
+                    document.getElementById('cancel-delete').addEventListener('click', () => {
+                        document.body.removeChild(confirmDialog);
+                    });
+
+                    document.getElementById('confirm-delete').addEventListener('click', () => {
+                        // 执行删除操作
+                        stateManager.removeCustomNodeType(nodeType.type);
+                        document.body.removeChild(confirmDialog);
+                    });
+                }
+            });
+
+            // 添加删除图标到按钮
+            const iconSpan = createElement('span', {
+                className: 'icon-trash',
+                style: {
+                    width: '16px',
+                    height: '16px'
+                }
+            });
+            deleteEl.appendChild(iconSpan);
 
             actionsEl.appendChild(deleteEl);
             nodeEl.appendChild(actionsEl);
