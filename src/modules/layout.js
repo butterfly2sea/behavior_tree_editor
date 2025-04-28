@@ -298,18 +298,18 @@ export function initLayout(elements, state, renderer) {
         const duration = options.animationDuration || 500;
         const startTime = Date.now();
 
-        // Create a map of positions by ID for faster lookup
+        // 创建位置映射以便快速查找
         const posMap = {};
         newPositions.forEach(pos => {
             posMap[pos.id] = pos;
         });
 
-        // Animation frame function
+        // 动画帧函数
         function animate() {
             const elapsed = Date.now() - startTime;
             const progress = Math.min(elapsed / duration, 1);
 
-            // Apply interpolated positions
+            // 应用插值位置
             originalPositions.forEach(origPos => {
                 const newPos = posMap[origPos.id];
                 if (newPos) {
@@ -320,19 +320,19 @@ export function initLayout(elements, state, renderer) {
                 }
             });
 
-            // Request render
-            renderer.requestRender();
+            // 请求完整渲染包括连接线
+            renderer.requestFullRender();
 
-            // Continue animation if not complete
+            // 继续动画如果没有完成
             if (progress < 1) {
                 requestAnimationFrame(animate);
             } else {
-                // Animation complete
+                // 动画完成
                 if (onComplete) onComplete();
             }
         }
 
-        // Start animation
+        // 开始动画
         requestAnimationFrame(animate);
     }
 
