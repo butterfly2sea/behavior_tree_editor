@@ -449,23 +449,6 @@ export function initPropertiesPanel(elements, state, renderer) {
     }
 
     /**
-     * Create a property textarea with label
-     */
-    function createPropertyArea(label, value, onChange, readonly = false) {
-        const container = createElement('div', {className: 'form-group'});
-
-        container.appendChild(createElement('label', {}, label));
-
-        const textarea = createElement('textarea', {
-            readonly: readonly,
-            onchange: onChange ? (e) => onChange(e.target.value) : null
-        }, value);
-
-        container.appendChild(textarea);
-        return container;
-    }
-
-    /**
      * Get HTML input type based on property type
      */
     function getInputTypeForPropertyType(propType) {
