@@ -4,9 +4,17 @@
 import {eventBus, EVENTS} from '../core/events.js';
 import {logger} from '../utils/logger.js';
 import {config} from '../core/config.js';
+import {Point, Rectangle} from '../utils/geometry.js';
 
 export function initViewport(elements, state, renderer) {
     const stateManager = state;
+
+    // State for handling pan gestures
+    let isPanning = false;
+    let lastPanPosition = {x: 0, y: 0};
+
+    // Track if alt key is pressed (for alternative pan method)
+    let isAltKeyPressed = false;
 
     /**
      * Set viewport scale (zoom level)
@@ -29,7 +37,7 @@ export function initViewport(elements, state, renderer) {
             const {canvas} = elements;
 
             // Get focus point in world coordinates before zoom
-            const worldPointBefore = renderer.screenToWorld(
+            const worldPointBefore = screenToWorld(
                 focusPoint.x,
                 focusPoint.y
             );
@@ -38,7 +46,7 @@ export function initViewport(elements, state, renderer) {
             stateManager.updateViewport({scale: newScale});
 
             // Get focus point in world coordinates after zoom
-            const worldPointAfter = renderer.screenToWorld(
+            const worldPointAfter = screenToWorld(
                 focusPoint.x,
                 focusPoint.y
             );
@@ -81,7 +89,29 @@ export function initViewport(elements, state, renderer) {
     }
 
     /**
-     * Pan the viewport
+     * Convert screen coordinates to world coordinates
+     */
+    function screenToWorld(x, y) {
+        const {scale, offsetX, offsetY} = stateManager.getViewport();
+        return {
+            x: x / scale - offsetX,
+            y: y / scale - offsetY
+        };
+    }
+
+    /**
+     * Convert world coordinates to screen coordinates
+     */
+    function worldToScreen(x, y) {
+        const {scale, offsetX, offsetY} = stateManager.getViewport();
+        return {
+            x: (x + offsetX) * scale,
+            y: (y + offsetY) * scale
+        };
+    }
+
+    /**
+     * Pan the viewport by delta amounts
      */
     function pan(deltaX, deltaY) {
         const viewport = stateManager.getViewport();
@@ -93,6 +123,46 @@ export function initViewport(elements, state, renderer) {
 
         // Request render update
         renderer.requestRender(true);
+    }
+
+    /**
+     * Start panning the viewport
+     */
+    function startPan(e) {
+        isPanning = true;
+        lastPanPosition = {x: e.clientX, y: e.clientY};
+
+        // Add pan-specific cursor class to canvas
+        elements.canvas.classList.add('panning');
+
+        document.addEventListener('mousemove', onPanMove);
+        document.addEventListener('mouseup', stopPan);
+    }
+
+    /**
+     * Handle mouse movement during panning
+     */
+    function onPanMove(e) {
+        if (!isPanning) return;
+
+        // Calculate delta since last move
+        const deltaX = e.clientX - lastPanPosition.x;
+        const deltaY = e.clientY - lastPanPosition.y;
+
+        pan(deltaX, deltaY);
+
+        lastPanPosition = {x: e.clientX, y: e.clientY};
+    }
+
+    /**
+     * Stop panning the viewport
+     */
+    function stopPan() {
+        isPanning = false;
+        elements.canvas.classList.remove('panning');
+
+        document.removeEventListener('mousemove', onPanMove);
+        document.removeEventListener('mouseup', stopPan);
     }
 
     /**
@@ -125,12 +195,12 @@ export function initViewport(elements, state, renderer) {
     }
 
     /**
-     * Fit all nodes in the viewport
+     * Calculate the bounds of all nodes
      */
-    function fitAllNodes(padding = 50) {
+    function calculateNodesBounds(padding = 50) {
         const nodes = stateManager.getNodes();
 
-        if (nodes.length === 0) return;
+        if (nodes.length === 0) return null;
 
         // Calculate bounds of all nodes
         let minX = Infinity, minY = Infinity;
@@ -149,23 +219,41 @@ export function initViewport(elements, state, renderer) {
         maxX += padding;
         maxY += padding;
 
+        return {
+            minX, minY, maxX, maxY,
+            width: maxX - minX,
+            height: maxY - minY,
+            center: {
+                x: (minX + maxX) / 2,
+                y: (minY + maxY) / 2
+            }
+        };
+    }
+
+    /**
+     * Fit all nodes in the viewport
+     */
+    function fitAllNodes(padding = 50) {
+        const nodes = stateManager.getNodes();
+
+        if (nodes.length === 0) return;
+
+        const bounds = calculateNodesBounds(padding);
+        if (!bounds) return;
+
         // Calculate required scale
         const {canvas} = elements;
-        const contentWidth = maxX - minX;
-        const contentHeight = maxY - minY;
+        const contentWidth = bounds.width;
+        const contentHeight = bounds.height;
         const scaleX = canvas.clientWidth / contentWidth;
         const scaleY = canvas.clientHeight / contentHeight;
         const newScale = Math.min(scaleX, scaleY, config.viewport.maxScale);
 
-        // Calculate center point
-        const centerX = (minX + maxX) / 2;
-        const centerY = (minY + maxY) / 2;
-
         // Update viewport
         stateManager.updateViewport({
             scale: newScale,
-            offsetX: -centerX + canvas.clientWidth / (2 * newScale),
-            offsetY: -centerY + canvas.clientHeight / (2 * newScale)
+            offsetX: -bounds.center.x + canvas.clientWidth / (2 * newScale),
+            offsetY: -bounds.center.y + canvas.clientHeight / (2 * newScale)
         });
 
         // Request render update
@@ -195,33 +283,25 @@ export function initViewport(elements, state, renderer) {
 
         // Middle mouse button or Alt+left mouse button for panning
         elements.canvas.addEventListener('mousedown', (e) => {
+            // Middle mouse button or Alt+left click to start panning
             if (e.button === 1 || (e.button === 0 && e.altKey)) {
                 e.preventDefault();
+                startPan(e);
+            }
+        });
 
-                // Start canvas dragging
-                let initialX = e.clientX;
-                let initialY = e.clientY;
+        // Track Alt key state
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Alt') {
+                isAltKeyPressed = true;
+                elements.canvas.classList.add('alt-key-pressed');
+            }
+        });
 
-                stateManager.startDragging(initialX, initialY, true);
-
-                const moveHandler = (moveEvent) => {
-                    const dx = moveEvent.clientX - initialX;
-                    const dy = moveEvent.clientY - initialY;
-                    pan(dx, dy);
-
-                    // Update initial position
-                    initialX = moveEvent.clientX;
-                    initialY = moveEvent.clientY;
-                };
-
-                const upHandler = () => {
-                    document.removeEventListener('mousemove', moveHandler);
-                    document.removeEventListener('mouseup', upHandler);
-                    stateManager.endDragging();
-                };
-
-                document.addEventListener('mousemove', moveHandler);
-                document.addEventListener('mouseup', upHandler);
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'Alt') {
+                isAltKeyPressed = false;
+                elements.canvas.classList.remove('alt-key-pressed');
             }
         });
 
@@ -261,6 +341,8 @@ export function initViewport(elements, state, renderer) {
         pan,
         centerOn,
         centerOnNode,
-        fitAllNodes
+        fitAllNodes,
+        screenToWorld,
+        worldToScreen
     };
 }

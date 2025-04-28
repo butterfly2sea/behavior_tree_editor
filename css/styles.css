@@ -66,6 +66,63 @@
     background-color: var(--color-success);
 }
 
+/* Canvas panning interaction styles */
+.canvas-container {
+    cursor: default;
+}
+
+.canvas-container.alt-key-pressed {
+    cursor: move;
+}
+
+.canvas-container.panning {
+    cursor: grabbing;
+}
+
+/* Minimap specific styles */
+.minimap-container {
+    border: 1px solid var(--color-border);
+    background-color: white;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.minimap-container canvas {
+    cursor: pointer;
+}
+
+/* Zoom controls */
+.zoom-controls {
+    display: flex;
+    flex-direction: column;
+    background: white;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.zoom-button {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: white;
+    color: #555;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.zoom-button:hover {
+    background: #f5f5f5;
+}
+
+.zoom-button:active {
+    background: #e5e5e5;
+}
+
 /* XML content */
 .xml-content {
     width: 100%;

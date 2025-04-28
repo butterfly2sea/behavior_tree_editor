@@ -11,17 +11,13 @@ import {logger} from './logger.js';
  */
 export function setupNodeDragAndDrop(nodeElement, options = {}) {
     const {
-        onDragStart,
-        onDrag,
-        onDragEnd,
-        renderer,
         state
     } = options;
 
     // Make element draggable
     nodeElement.draggable = true;
 
-    // Drag start - set data and create drag image
+    // Drag start
     nodeElement.addEventListener('dragstart', (e) => {
         // Skip if dragging from a port
         if (e.target.classList.contains('port')) {
@@ -46,21 +42,27 @@ export function setupNodeDragAndDrop(nodeElement, options = {}) {
             }
         }
 
-        // Create drag image
-        createDragImage(e, nodeElement);
+        // Create drag image with proper styling
+        const dragImage = nodeElement.cloneNode(true);
+        dragImage.style.opacity = '0.7';
+        dragImage.style.position = 'absolute';
+        dragImage.style.top = '-1000px';
+        dragImage.style.backgroundColor = 'rgba(255, 255, 255, 0.7)';
+        document.body.appendChild(dragImage);
 
-        // Call callback
-        if (onDragStart) onDragStart(e, nodeId);
-    });
+        // Set drag image centered on mouse
+        e.dataTransfer.setDragImage(
+            dragImage,
+            dragImage.offsetWidth / 2,
+            dragImage.offsetHeight / 2
+        );
 
-    // Drag operation
-    nodeElement.addEventListener('drag', (e) => {
-        if (onDrag) onDrag(e);
-    });
-
-    // Drag end
-    nodeElement.addEventListener('dragend', (e) => {
-        if (onDragEnd) onDragEnd(e);
+        // Clean up after dragstart
+        setTimeout(() => {
+            if (dragImage.parentNode === document.body) {
+                document.body.removeChild(dragImage);
+            }
+        }, 0);
     });
 }
 
