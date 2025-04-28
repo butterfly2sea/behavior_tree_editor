@@ -372,7 +372,7 @@ export function initRenderer(elements, state) {
      */
     function updateNodePortVisibility(nodeEl, node, getNodeDefFunc = null) {
         const connections = stateManager.getConnections();
-        const nodeDef = getNodeDefinition(node.type, node.category);
+        const nodeDef = getNodeDefinition(node.type, node.category, stateManager);
 
         if (!nodeDef) return;
 

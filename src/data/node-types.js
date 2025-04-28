@@ -375,9 +375,10 @@ export function getDefaultConstraintsForCategory(category) {
  * Get node definition from type and category
  * @param {string} type - Node type
  * @param {string} category - Node category
+ * @param {Object|null} stateManager -
  * @returns {Object|null} - Node definition or null if not found
  */
-export function getNodeDefinition(type, category) {
+export function getNodeDefinition(type, category, stateManager = null) {
     // First check built-in types
     if (NODE_TYPES[category]) {
         const builtInType = NODE_TYPES[category].find(nt => nt.type === type);
@@ -385,7 +386,9 @@ export function getNodeDefinition(type, category) {
     }
 
     // Check custom node types in state
-    if (typeof window !== 'undefined' && window.state && window.state.customNodeTypes) {
+    if (stateManager) {
+        return stateManager.getCustomNodeTypes().find(nt => nt.type === type);
+    } else if (typeof window !== 'undefined' && window.state && window.state.customNodeTypes) {
         return window.state.customNodeTypes.find(nt => nt.type === type);
     }
 
