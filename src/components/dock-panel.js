@@ -301,12 +301,6 @@ export function initDockPanel(elements, state, nodesModule) {
             addNodeBtn.addEventListener('click', showCreateNodeModal);
         }
 
-        // Create node form
-        const createNodeForm = document.getElementById('create-node-form');
-        if (createNodeForm) {
-            createNodeForm.addEventListener('submit', handleCreateNodeSubmit);
-        }
-
         // Modal close buttons
         const closeCreateModal = document.getElementById('close-create-modal');
         const cancelCreateNodeBtn = document.getElementById('cancel-create-node');
