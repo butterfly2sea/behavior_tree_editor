@@ -324,27 +324,21 @@ export function initNodes(elements, state, renderer) {
             const selectedNodes = stateManager.getSelectedNodes();
 
             if (selectedNodes.includes(nodeId)) {
-                // 修改此处：直接设置位置而不是计算相对偏移
-                selectedNodes.forEach(selectedId => {
-                    const node = stateManager.getNodes().find(n => n.id === selectedId);
-                    if (node) {
-                        // 如果是被拖动的节点，直接设置到鼠标位置
-                        if (selectedId === nodeId) {
-                            stateManager.updateNode(selectedId, {
-                                x: worldPos.x - config.nodeWidth / 2,
-                                y: worldPos.y - config.nodeHeight / 2
-                            });
-                        } else {
-                            // 如果是其他选中的节点，保持相对位置
-                            const mainNode = stateManager.getNodes().find(n => n.id === nodeId);
-                            const offsetX = node.x - mainNode.x;
-                            const offsetY = node.y - mainNode.y;
+                // 获取主拖拽节点
+                const mainNode = stateManager.getNodes().find(n => n.id === nodeId);
 
-                            stateManager.updateNode(selectedId, {
-                                x: worldPos.x - config.nodeWidth / 2 + offsetX,
-                                y: worldPos.y - config.nodeHeight / 2 + offsetY
-                            });
-                        }
+                // 计算偏移量 (被拖动位置与原位置的差值)
+                const deltaX = worldPos.x - config.nodeWidth / 2 - mainNode.x;
+                const deltaY = worldPos.y - config.nodeHeight / 2 - mainNode.y;
+
+                // 应用相同的偏移量到所有选中节点
+                selectedNodes.forEach(selId => {
+                    const node = stateManager.getNodes().find(n => n.id === selId);
+                    if (node) {
+                        stateManager.updateNode(selId, {
+                            x: node.x + deltaX,
+                            y: node.y + deltaY
+                        });
                     }
                 });
             } else {
