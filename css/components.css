@@ -340,6 +340,12 @@ input, select, textarea {
     width: 100%;
 }
 
+.property-value.disabled {
+    background-color: #f0f0f0;
+    color: #666;
+    cursor: not-allowed;
+}
+
 .properties-table {
     width: 100%;
     border-collapse: collapse;

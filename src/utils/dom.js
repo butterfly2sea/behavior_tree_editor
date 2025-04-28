@@ -25,6 +25,10 @@ export function createElement(tagName, attributes = {}, children = []) {
             Object.entries(value).forEach(([dataKey, dataValue]) => {
                 element.dataset[dataKey] = dataValue;
             });
+        } else if (key === 'readonly') {
+            if (value === true) {
+                element.setAttribute('disabled', '');
+            }
         } else {
             element.setAttribute(key, value);
         }
@@ -83,12 +87,7 @@ export function getElementPosition(element) {
     const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
     const scrollTop = window.scrollY || document.documentElement.scrollTop;
 
-    return {
-        x: rect.left + scrollLeft,
-        y: rect.top + scrollTop,
-        width: rect.width,
-        height: rect.height
-    };
+    return {x: rect.left + scrollLeft, y: rect.top + scrollTop, width: rect.width, height: rect.height};
 }
 
 /**
@@ -100,12 +99,7 @@ export function getElementPosition(element) {
  */
 export function isPointInElement(x, y, element) {
     const rect = element.getBoundingClientRect();
-    return (
-        x >= rect.left &&
-        x <= rect.right &&
-        y >= rect.top &&
-        y <= rect.bottom
-    );
+    return (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom);
 }
 
 /**
