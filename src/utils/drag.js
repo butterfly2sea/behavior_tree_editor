@@ -85,7 +85,9 @@ function createDragImage(event, nodeElement) {
 
     // Clean up after dragstart
     setTimeout(() => {
-        document.body.removeChild(dragImage);
+        if (dragImage.parentNode === document.body) {
+            document.body.removeChild(dragImage);
+        }
     }, 0);
 }
 
