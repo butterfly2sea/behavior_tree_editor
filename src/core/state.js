@@ -406,11 +406,24 @@ export function initState() {
         },
 
         loadState: (newState) => {
-            // Preserve some settings
-            const {viewport} = state;
+            // 创建一个基于初始状态的新对象
+            const baseState = structuredClone(initialState);
 
-            // Load new state
-            state = {...newState, viewport};
+            // 只覆盖我们想要从加载的数据中更新的属性
+            if (newState.nodes) baseState.nodes = newState.nodes;
+            if (newState.connections) baseState.connections = newState.connections;
+            if (newState.customNodeTypes) baseState.customNodeTypes = newState.customNodeTypes;
+            if (newState.collapsedCategories) baseState.collapsedCategories = newState.collapsedCategories;
+            if (newState.grid) baseState.grid = newState.grid;
+
+            // 保留当前视口设置
+            baseState.viewport = state.viewport;
+
+            // 设置ID计数器
+            if (newState.idCounters) baseState.idCounters = newState.idCounters;
+
+            // 更新状态
+            state = baseState;
 
             eventBus.emit(EVENTS.STATE_LOADED);
         },
