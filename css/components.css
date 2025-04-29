@@ -194,10 +194,12 @@ input, select, textarea {
     cursor: crosshair;
     z-index: 15;
     transition: all 0.2s ease;
+    left: 50%;
+    transform: translateX(-50%);
 }
 
 .port:hover {
-    transform: scale(1.2);
+    transform: translateX(-50%) scale(1.2);
 }
 
 .port.disabled {
@@ -207,14 +209,10 @@ input, select, textarea {
 
 .port-parent {
     top: -5px;
-    left: 50%;
-    transform: translateX(-50%);
 }
 
 .port-child {
     bottom: -5px;
-    left: 50%;
-    transform: translateX(-50%);
 }
 
 .port.active {
