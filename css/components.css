@@ -73,6 +73,7 @@ input, select, textarea {
     user-select: none;
     z-index: 10;
     will-change: transform;
+    transition: box-shadow 0.2s;
 }
 
 .tree-node.selected {
@@ -111,6 +112,27 @@ input, select, textarea {
 .tree-node.Condition {
     border-color: var(--color-condition-border);
     background: var(--color-condition-bg);
+}
+
+.tree-node.dragging {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    cursor: grabbing;
+}
+
+/* Status indicators */
+.tree-node.running {
+    border-color: var(--color-warning);
+    box-shadow: 0 0 15px rgba(255, 235, 59, 0.5);
+}
+
+.tree-node.success {
+    border-color: var(--color-success);
+    box-shadow: 0 0 15px rgba(76, 175, 80, 0.5);
+}
+
+.tree-node.failure {
+    border-color: var(--color-error);
+    box-shadow: 0 0 15px rgba(244, 67, 54, 0.5);
 }
 
 /* Node content */
@@ -171,6 +193,16 @@ input, select, textarea {
     pointer-events: all;
     cursor: crosshair;
     z-index: 15;
+    transition: all 0.2s ease;
+}
+
+.port:hover {
+    transform: scale(1.2);
+}
+
+.port.disabled {
+    opacity: 0.5;
+    pointer-events: none;
 }
 
 .port-parent {
@@ -289,22 +321,6 @@ input, select, textarea {
 .node-item.condition {
     background: var(--color-condition-bg);
     border-color: var(--color-condition-border);
-}
-
-/* Status indicators */
-.tree-node.running {
-    border-color: var(--color-warning);
-    box-shadow: 0 0 15px rgba(255, 235, 59, 0.5);
-}
-
-.tree-node.success {
-    border-color: var(--color-success);
-    box-shadow: 0 0 15px rgba(76, 175, 80, 0.5);
-}
-
-.tree-node.failure {
-    border-color: var(--color-error);
-    box-shadow: 0 0 15px rgba(244, 67, 54, 0.5);
 }
 
 /* Forms */
