@@ -11,9 +11,9 @@ export const config = {
 
     // Grid settings
     defaultGrid: {
-        enabled: false,
+        enabled: true,
         size: 20,
-        snap: false
+        snap: true
     },
 
     // Viewport
