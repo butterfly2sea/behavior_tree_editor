@@ -1,5 +1,5 @@
 /**
- * Renderer - Manages efficient rendering
+ * 渲染器 - 管理高效渲染
  */
 import {eventBus, EVENTS} from './events.js';
 import {config} from './config.js';
@@ -7,21 +7,20 @@ import {createSvgElement} from '../utils/dom.js';
 import {getNodeDefinition} from "../data/node-types.js";
 import {setupNodeDragAndDrop} from "../utils/drag.js";
 
-
 export function initRenderer(elements, state) {
     const stateManager = state;
 
-    // Rendering state
+    // 渲染状态
     let renderRequested = false;
     let needsFullRender = false;
     let updatedNodeIds = new Set();
     let updatedConnectionIds = new Set();
 
-    // Set up event listeners
+    // 设置事件监听器
     setupEventListeners();
 
     /**
-     * Request a render on the next animation frame
+     * 请求在下一个动画帧进行渲染
      */
     function requestRender(fullUpdate = false) {
         if (fullUpdate) {
@@ -35,14 +34,14 @@ export function initRenderer(elements, state) {
     }
 
     /**
-     * Request a full render of all elements
+     * 请求完全重新渲染所有元素
      */
     function requestFullRender() {
         requestRender(true);
     }
 
     /**
-     * Request a render update for a specific node
+     * 请求渲染更新特定节点
      */
     function requestNodeUpdate(nodeId) {
         updatedNodeIds.add(nodeId);
@@ -50,7 +49,7 @@ export function initRenderer(elements, state) {
     }
 
     /**
-     * Request a render update for a specific connection
+     * 请求渲染更新特定连接
      */
     function requestConnectionUpdate(connectionId) {
         updatedConnectionIds.add(connectionId);
@@ -58,23 +57,23 @@ export function initRenderer(elements, state) {
     }
 
     /**
-     * Perform the actual rendering
+     * 执行实际渲染
      */
     function performRender() {
         renderRequested = false;
 
-        // Apply viewport transform
+        // 应用视口变换
         applyViewportTransform();
 
-        // Update visible area for culling
+        // 更新可见区域用于裁剪
         updateVisibleArea();
 
-        // Update grid if needed
+        // 如果需要，更新网格
         if (needsFullRender) {
             renderGrid();
         }
 
-        // Render nodes and connections
+        // 渲染节点和连接
         if (needsFullRender) {
             renderAllNodes();
             renderAllConnections();
@@ -88,42 +87,44 @@ export function initRenderer(elements, state) {
             }
         }
 
-        // Render minimap if visible
+        // 如果可见，渲染Minimap
         if (stateManager.getMinimap().isVisible) {
             renderMinimap();
         }
 
-        // Clear update flags and sets
+        // 清除更新标志和集合
         needsFullRender = false;
         updatedNodeIds.clear();
         updatedConnectionIds.clear();
     }
 
     /**
-     * Apply viewport transformation to canvas
+     * 向画布应用视口变换
+     * 这是关键函数，确保正确应用视口变换
      */
     function applyViewportTransform() {
         const {scale, offsetX, offsetY} = stateManager.getViewport();
         const {canvas} = elements;
 
-        // Apply transform with hardware acceleration
+        // 使用硬件加速进行变换
+        // 注意：这只应用于整个画布的变换，不改变节点的绝对坐标
         canvas.style.transform = `translate(${offsetX * scale}px, ${offsetY * scale}px) scale(${scale})`;
         canvas.style.transformOrigin = '0 0';
     }
 
     /**
-     * Update the visible area for culling
+     * 更新裁剪的可见区域
      */
     function updateVisibleArea() {
         const {canvas} = elements;
         const {scale, offsetX, offsetY} = stateManager.getViewport();
 
-        // Calculate visible area in world coordinates with padding
+        // 用世界坐标计算可见区域（带边距）
         const canvasRect = canvas.getBoundingClientRect();
         const width = canvasRect.width / scale;
         const height = canvasRect.height / scale;
 
-        // Add padding to avoid popping (50% of viewport)
+        // 添加边距避免突然出现（视口的50%）
         const padding = {
             x: width * 0.5,
             y: height * 0.5
@@ -138,7 +139,7 @@ export function initRenderer(elements, state) {
     }
 
     /**
-     * Render the grid
+     * 渲染网格
      */
     function renderGrid() {
         const {gridCanvas} = elements;
@@ -147,7 +148,7 @@ export function initRenderer(elements, state) {
 
         if (!gridCanvas) return;
 
-        // Resize grid canvas to match container
+        // 调整网格画布大小以匹配容器
         const container = gridCanvas.parentElement;
         gridCanvas.width = container.clientWidth;
         gridCanvas.height = container.clientHeight;
@@ -155,7 +156,7 @@ export function initRenderer(elements, state) {
         const ctx = gridCanvas.getContext('2d');
         ctx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
 
-        // Skip if grid is disabled
+        // 如果网格被禁用，跳过
         if (!grid.enabled) return;
 
         const {scale} = viewport;
@@ -166,7 +167,7 @@ export function initRenderer(elements, state) {
         ctx.strokeStyle = '#e0e0e0';
         ctx.lineWidth = 1;
 
-        // Draw vertical lines
+        // 绘制垂直线
         for (let x = offsetX; x <= gridCanvas.width; x += scaledGridSize) {
             const roundedX = Math.round(x) + 0.5;
             ctx.beginPath();
@@ -175,7 +176,7 @@ export function initRenderer(elements, state) {
             ctx.stroke();
         }
 
-        // Draw horizontal lines
+        // 绘制水平线
         for (let y = offsetY; y <= gridCanvas.height; y += scaledGridSize) {
             const roundedY = Math.round(y) + 0.5;
             ctx.beginPath();
@@ -186,7 +187,8 @@ export function initRenderer(elements, state) {
     }
 
     /**
-     * Render all nodes
+     * 渲染所有节点
+     * 修改为只渲染那些在可见区域内的节点，并正确应用视口变换
      */
     function renderAllNodes() {
         const nodes = stateManager.getNodes();
@@ -215,7 +217,7 @@ export function initRenderer(elements, state) {
     }
 
     /**
-     * Check if node is visible in the current viewport
+     * 检查节点是否在当前视口中可见
      */
     function isNodeVisible(node, visibleArea) {
         return (
@@ -227,29 +229,29 @@ export function initRenderer(elements, state) {
     }
 
     /**
-     * Render only nodes that have been updated
+     * 只渲染已更新的节点
      */
     function renderUpdatedNodes() {
         const nodes = stateManager.getNodes();
         const visibleArea = stateManager.getVisibleArea();
 
-        // Process nodes that need updating
+        // 处理需要更新的节点
         for (const nodeId of updatedNodeIds) {
             const node = nodes.find(n => n.id === nodeId);
             if (!node) continue;
 
-            // Check if node is visible
+            // 检查节点是否可见
             if (isNodeVisible(node, visibleArea)) {
-                // Remove existing node element if it exists
+                // 如果存在，移除现有节点元素
                 const existingNode = document.querySelector(`.tree-node[data-id="${nodeId}"]`);
                 if (existingNode) {
                     existingNode.remove();
                 }
 
-                // Create new node element
+                // 创建新节点元素
                 createNodeElement(node);
             } else {
-                // Node is not visible, just remove it if it exists
+                // 节点不可见，如果存在则移除
                 const existingNode = document.querySelector(`.tree-node[data-id="${nodeId}"]`);
                 if (existingNode) {
                     existingNode.remove();
@@ -257,7 +259,7 @@ export function initRenderer(elements, state) {
             }
         }
 
-        // Check if any existing nodes are now outside the visible area
+        // 检查现有节点是否现在在可见区域外
         const existingNodes = document.querySelectorAll('.tree-node');
         existingNodes.forEach(nodeElement => {
             const nodeId = nodeElement.getAttribute('data-id');
@@ -268,7 +270,7 @@ export function initRenderer(elements, state) {
             }
         });
 
-        // Check if any nodes that should be visible are not rendered
+        // 检查应该可见但未渲染的节点
         nodes.forEach(node => {
             if (isNodeVisible(node, visibleArea)) {
                 const existingNode = document.querySelector(`.tree-node[data-id="${node.id}"]`);
@@ -280,34 +282,34 @@ export function initRenderer(elements, state) {
     }
 
     /**
-     * Create DOM element for a node
+     * 为节点创建DOM元素
      */
     function createNodeElement(node) {
         const {canvas} = elements;
         const selectedNodes = stateManager.getSelectedNodes();
         const monitorNodeStates = stateManager.getMonitor().nodeStates;
 
-        // Create node element
+        // 创建节点元素
         const nodeEl = document.createElement('div');
         nodeEl.className = `tree-node ${node.type}`;
         nodeEl.setAttribute('data-id', node.id);
         nodeEl.draggable = true;
 
-        // Add monitoring state class if available
+        // 如果有监视状态，添加监视状态类
         if (stateManager.getMonitor().active && monitorNodeStates[node.id]) {
             nodeEl.classList.add(monitorNodeStates[node.id]);
         }
 
-        // Add selected class if node is in selection
+        // 如果节点在选择中，添加选中类
         if (selectedNodes.includes(node.id)) {
             nodeEl.classList.add('selected');
         }
 
-        // Position the node
+        // 定位节点
         nodeEl.style.left = `${node.x}px`;
         nodeEl.style.top = `${node.y}px`;
 
-        // Node content
+        // 节点内容
         const contentEl = document.createElement('div');
         contentEl.className = 'node-content';
 
@@ -322,7 +324,7 @@ export function initRenderer(elements, state) {
 
         nodeEl.appendChild(contentEl);
 
-        // Node ports
+        // 节点端口
         const portsEl = document.createElement('div');
         portsEl.className = 'node-ports';
 
@@ -336,12 +338,12 @@ export function initRenderer(elements, state) {
 
         nodeEl.appendChild(portsEl);
 
-        // Add to canvas
+        // 添加到画布
         canvas.appendChild(nodeEl);
 
         setupNodeDragAndDrop(nodeEl, {state: stateManager});
 
-        // Update port visibility based on constraints
+        // 根据约束更新端口可见性
         updateNodePortVisibility(nodeEl, node);
 
         nodeEl.addEventListener('click', (e) => {
@@ -366,9 +368,6 @@ export function initRenderer(elements, state) {
 
     /**
      * 更新端口可见性基于节点约束
-     * @param {HTMLElement} nodeEl - 节点DOM元素
-     * @param {Object} node - 节点数据对象
-     * @param {Function} getNodeDefFunc - 可选的节点定义获取函数，如果未提供则使用window对象
      */
     function updateNodePortVisibility(nodeEl, node, getNodeDefFunc = null) {
         const connections = stateManager.getConnections();
@@ -437,58 +436,58 @@ export function initRenderer(elements, state) {
     }
 
     /**
-     * Render all connections
+     * 渲染所有连接线
      */
     function renderAllConnections() {
         const {connectionsLayer} = elements;
         const connections = stateManager.getConnections();
 
-        // Clear existing connections
+        // 清除现有连接
         connectionsLayer.innerHTML = '';
 
-        // Create new connections
+        // 创建新连接
         connections.forEach(connection => {
             createConnectionElement(connection);
         });
     }
 
     /**
-     * Render only connections that have been updated
+     * 只渲染已更新的连接
      */
     function renderUpdatedConnections() {
         const connections = stateManager.getConnections();
 
-        // Process connections that need updating
+        // 处理需要更新的连接
         for (const connectionId of updatedConnectionIds) {
             const connection = connections.find(c => c.id === connectionId);
             if (!connection) continue;
 
-            // Remove existing connection element if it exists
+            // 如果存在，移除现有连接元素
             const existingConnection = document.querySelector(`path[data-id="${connectionId}"]`);
             if (existingConnection) {
                 existingConnection.remove();
             }
 
-            // Create new connection element
+            // 创建新连接元素
             createConnectionElement(connection);
         }
     }
 
     /**
-     * Create SVG element for a connection
+     * 为连接创建SVG元素
      */
     function createConnectionElement(connection) {
         const {connectionsLayer} = elements;
         const nodes = stateManager.getNodes();
         const selectedConnection = stateManager.getSelectedConnection();
 
-        // Find source and target nodes
+        // 查找源和目标节点
         const sourceNode = nodes.find(node => node.id === connection.source);
         const targetNode = nodes.find(node => node.id === connection.target);
 
         if (!sourceNode || !targetNode) return null;
 
-        // Create path element
+        // 创建路径元素
         const path = createSvgElement('path', {
             'class': 'connection-path',
             'fill': 'none',
@@ -499,39 +498,39 @@ export function initRenderer(elements, state) {
             'data-id': connection.id
         });
 
-        // Generate path data
+        // 生成路径数据
         const pathData = generateConnectionPath(sourceNode, targetNode);
         path.setAttribute('d', pathData);
 
-        // Add to connections layer
+        // 添加到连接层
         connectionsLayer.appendChild(path);
 
         return path;
     }
 
     /**
-     * Generate SVG path for a connection
+     * 为连接生成SVG路径
      */
     function generateConnectionPath(sourceNode, targetNode) {
-        // Start point (source node's bottom center)
+        // 起点（源节点的底部中心）
         const startX = sourceNode.x + config.nodeWidth / 2;
         const startY = sourceNode.y + config.nodeHeight;
 
-        // End point (target node's top center)
+        // 终点（目标节点的顶部中心）
         const endX = targetNode.x + config.nodeWidth / 2;
         const endY = targetNode.y;
 
-        // Calculate control points for a nice curve
+        // 计算控制点以绘制漂亮的曲线
         const deltaY = endY - startY;
         const controlY1 = startY + Math.min(Math.abs(deltaY) * 0.3, 40);
         const controlY2 = endY - Math.min(Math.abs(deltaY) * 0.3, 40);
 
-        // Return path data for a cubic bezier curve
+        // 返回三次贝塞尔曲线的路径数据
         return `M ${startX} ${startY} C ${startX} ${controlY1}, ${endX} ${controlY2}, ${endX} ${endY}`;
     }
 
     /**
-     * Render the pending connection during creation
+     * 在创建过程中渲染待处理的连接
      */
     function renderPendingConnection() {
         const {activeConnectionLayer} = elements;
@@ -548,7 +547,7 @@ export function initRenderer(elements, state) {
         const sourceNode = nodes.find(n => n.id === pendingConnection.sourceId);
         if (!sourceNode) return;
 
-        // 获取源坐标基于端口类型
+        // 根据端口类型获取源坐标
         let startX, startY;
         if (pendingConnection.sourcePort === 'parent') {
             startX = sourceNode.x + config.nodeWidth / 2;
@@ -566,7 +565,7 @@ export function initRenderer(elements, state) {
             'stroke-dasharray': '5,5'
         });
 
-        // Generate curve
+        // 生成曲线
         const deltaY = mousePos.y - startY;
         const controlY1 = startY + Math.min(Math.abs(deltaY) * 0.3, 40);
         const controlY2 = mousePos.y - Math.min(Math.abs(deltaY) * 0.3, 40);
@@ -574,14 +573,14 @@ export function initRenderer(elements, state) {
 
         path.setAttribute('d', pathData);
 
-        // 清理和添加新路径
+        // 清理并添加新路径
         activeConnectionLayer.innerHTML = '';
         activeConnectionLayer.appendChild(path);
         activeConnectionLayer.style.display = 'block';
     }
 
     /**
-     * Render minimap
+     * 渲染Minimap
      */
     function renderMinimap() {
         const {minimap} = elements;
@@ -595,16 +594,16 @@ export function initRenderer(elements, state) {
         const ctx = minimap.getContext('2d');
         ctx.clearRect(0, 0, minimapState.width, minimapState.height);
 
-        // Calculate bounds of all nodes
+        // 计算所有节点的边界
         const bounds = calculateNodesBounds(nodes);
 
-        // Calculate scale to fit all nodes in minimap
+        // 计算缩放比例以适应Minimap中的所有节点
         const padding = 10;
         const scaleX = (minimapState.width - padding * 2) / bounds.width;
         const scaleY = (minimapState.height - padding * 2) / bounds.height;
         const scale = Math.min(scaleX, scaleY);
 
-        // Draw connections
+        // 绘制连接
         ctx.strokeStyle = '#999';
         ctx.lineWidth = 1;
 
@@ -625,7 +624,7 @@ export function initRenderer(elements, state) {
             }
         });
 
-        // Draw nodes
+        // 绘制节点
         ctx.fillStyle = '#ddd';
 
         nodes.forEach(node => {
@@ -637,7 +636,7 @@ export function initRenderer(elements, state) {
             ctx.fillRect(x, y, width, height);
         });
 
-        // Draw viewport rectangle
+        // 绘制视口矩形
         const viewportMinX = -viewport.offsetX / viewport.scale;
         const viewportMinY = -viewport.offsetY / viewport.scale;
         const container = minimap.parentElement.parentElement;
@@ -655,7 +654,7 @@ export function initRenderer(elements, state) {
     }
 
     /**
-     * Calculate bounds of all nodes
+     * 计算所有节点的边界
      */
     function calculateNodesBounds(nodes) {
         if (nodes.length === 0) {
@@ -676,7 +675,7 @@ export function initRenderer(elements, state) {
             maxY = Math.max(maxY, node.y + config.nodeHeight);
         });
 
-        // Add padding
+        // 添加边距
         minX -= 100;
         minY -= 100;
         maxX += 100;
@@ -690,10 +689,10 @@ export function initRenderer(elements, state) {
     }
 
     /**
-     * Set up event listeners
+     * 设置事件监听器
      */
     function setupEventListeners() {
-        // Node events
+        // 节点事件
         eventBus.on(EVENTS.NODE_CHANGED, (data) => {
             if (data.type === 'created' || data.type === 'deleted') {
                 requestFullRender();
@@ -706,7 +705,7 @@ export function initRenderer(elements, state) {
             }
         });
 
-        // Connection events
+        // 连接事件
         eventBus.on(EVENTS.CONNECTION_CHANGED, (data) => {
             if (data.type === 'created' || data.type === 'deleted') {
                 requestConnectionUpdate(data.connection.id);
@@ -715,27 +714,27 @@ export function initRenderer(elements, state) {
             }
         });
 
-        // Viewport events
+        // 视口事件
         eventBus.on(EVENTS.VIEWPORT_CHANGED, () => {
             requestFullRender();
         });
 
-        // Grid events
+        // 网格事件
         eventBus.on(EVENTS.GRID_CHANGED, () => {
             requestFullRender();
         });
 
-        // Selection events
+        // 选择事件
         eventBus.on(EVENTS.SELECTION_CHANGED, () => {
             requestFullRender();
         });
 
-        // Monitor events
+        // 监视器事件
         eventBus.on(EVENTS.MONITOR_CHANGED, () => {
             requestFullRender();
         });
 
-        // State reset/load
+        // 状态重置/加载
         eventBus.on(EVENTS.STATE_RESET, () => {
             requestFullRender();
         });
@@ -744,7 +743,7 @@ export function initRenderer(elements, state) {
             requestFullRender();
         });
 
-        // Window resize
+        // 窗口大小变化
         window.addEventListener('resize', () => {
             updateCanvasDimensions();
             requestFullRender();
@@ -752,7 +751,7 @@ export function initRenderer(elements, state) {
     }
 
     /**
-     * Update canvas dimensions on resize
+     * 窗口大小变化时更新画布尺寸
      */
     function updateCanvasDimensions() {
         const {canvas, gridCanvas, connectionsLayer, activeConnectionLayer} = elements;
@@ -777,7 +776,7 @@ export function initRenderer(elements, state) {
         }
     }
 
-    // Return public API
+    // 返回公共API
     return {
         requestRender,
         requestFullRender,
@@ -788,7 +787,7 @@ export function initRenderer(elements, state) {
         renderMinimap,
         updateCanvasDimensions,
         calculateNodesBounds,
-        updateNodePortVisibility, // 添加这一行，导出函数
+        updateNodePortVisibility,
 
         // 坐标转换工具
         screenToWorld: (x, y) => {

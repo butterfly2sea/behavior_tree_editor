@@ -302,20 +302,20 @@ export function initNodes(elements, state, renderer) {
     }
 
     /**
-     * Handle canvas drop event
+     * 处理画布拖放事件
      */
     function handleCanvasDrop(e) {
         e.preventDefault();
 
-        // Get drop position relative to canvas
+        // 获取相对于画布的放置位置
         const rect = elements.canvas.getBoundingClientRect();
         const clientX = e.clientX - rect.left;
         const clientY = e.clientY - rect.top;
 
-        // Convert to world coordinates - use renderer's transformation function
+        // 转换为世界坐标 - 使用渲染器的变换函数
         const worldPos = renderer.screenToWorld(clientX, clientY);
 
-        // Get drag data
+        // 获取拖拽数据
         const nodeId = e.dataTransfer.getData('application/node-id');
         const nodeType = e.dataTransfer.getData('application/node-type');
         const nodeCategory = e.dataTransfer.getData('application/node-category');
@@ -324,18 +324,18 @@ export function initNodes(elements, state, renderer) {
             const selectedNodes = stateManager.getSelectedNodes();
 
             if (selectedNodes.includes(nodeId)) {
-                // Get main dragged node
+                // 获取主拖拽节点
                 const mainNode = stateManager.getNodes().find(n => n.id === nodeId);
 
-                // Calculate world position directly - don't subtract half width/height yet
+                // 直接计算世界坐标 - 暂不减去节点宽高的一半
                 const newX = worldPos.x;
                 const newY = worldPos.y;
 
-                // Calculate offset from node center for more natural dragging
+                // 计算相对于节点中心的偏移量，以实现更自然的拖拽
                 const offsetX = newX - mainNode.x - config.nodeWidth / 2;
                 const offsetY = newY - mainNode.y - config.nodeHeight / 2;
 
-                // Apply same offset to all selected nodes
+                // 对所有选中节点应用相同的偏移量
                 selectedNodes.forEach(selId => {
                     const node = stateManager.getNodes().find(n => n.id === selId);
                     if (node) {
@@ -346,22 +346,22 @@ export function initNodes(elements, state, renderer) {
                     }
                 });
             } else {
-                // Single node drag, set position directly
+                // 单个节点拖拽，直接设置位置
                 stateManager.updateNode(nodeId, {
                     x: worldPos.x - config.nodeWidth / 2,
                     y: worldPos.y - config.nodeHeight / 2
                 });
             }
 
-            // Apply grid snapping if enabled
+            // 如果启用了网格对齐
             if (stateManager.getGrid().snap) {
                 applyGridSnapping(selectedNodes.length > 0 ? selectedNodes : [nodeId]);
             }
 
-            // Ensure connections redraw correctly
+            // 确保连接线正确重绘
             renderer.requestFullRender();
         } else if (nodeType && nodeCategory) {
-            // Create new node at world position
+            // 在世界坐标位置创建新节点
             createNode(
                 nodeType,
                 nodeCategory,

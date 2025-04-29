@@ -1,5 +1,5 @@
 /**
- * Viewport Module - Manages canvas viewport and zooming
+ * Viewport Module - 管理画布视口和缩放
  */
 import {eventBus, EVENTS} from '../core/events.js';
 import {logger} from '../utils/logger.js';
@@ -9,64 +9,66 @@ import {Point, Rectangle} from '../utils/geometry.js';
 export function initViewport(elements, state, renderer) {
     const stateManager = state;
 
-    // State for handling pan gestures
+    // 平移状态
     let isPanning = false;
     let lastPanPosition = {x: 0, y: 0};
 
-    // Track if alt key is pressed (for alternative pan method)
+    // 是否按住Alt键（用于替代平移方法）
     let isAltKeyPressed = false;
 
     /**
-     * Set viewport scale (zoom level)
+     * 设置视口缩放级别
+     * @param {number} newScale - 新的缩放级别
+     * @param {Object} focusPoint - 缩放中心点（屏幕坐标）
      */
     function setScale(newScale, focusPoint = null) {
         const viewport = stateManager.getViewport();
         const oldScale = viewport.scale;
 
-        // Clamp scale to min/max values
+        // 将缩放限制在最小/最大值范围内
         newScale = Math.min(
             Math.max(newScale, viewport.minScale),
             viewport.maxScale
         );
 
-        // If scale hasn't changed, do nothing
+        // 如果缩放没有变化，不做任何操作
         if (newScale === oldScale) return;
 
-        // If focus point is provided, zoom toward that point
+        // 如果提供了焦点，则向该点缩放
         if (focusPoint) {
             const {canvas} = elements;
 
-            // Get focus point in world coordinates before zoom
+            // 获取缩放前的世界坐标
             const worldPointBefore = screenToWorld(
                 focusPoint.x,
                 focusPoint.y
             );
 
-            // Update scale
+            // 更新缩放比例
             stateManager.updateViewport({scale: newScale});
 
-            // Get focus point in world coordinates after zoom
+            // 获取缩放后的世界坐标
             const worldPointAfter = screenToWorld(
                 focusPoint.x,
                 focusPoint.y
             );
 
-            // Adjust offset to keep focus point stationary
+            // 调整偏移量以保持焦点位置不变
             stateManager.updateViewport({
                 offsetX: viewport.offsetX + (worldPointBefore.x - worldPointAfter.x),
                 offsetY: viewport.offsetY + (worldPointBefore.y - worldPointAfter.y)
             });
         } else {
-            // Just update scale without adjusting offset
+            // 只更新缩放比例，不调整偏移量
             stateManager.updateViewport({scale: newScale});
         }
 
-        // Request render update
+        // 请求渲染更新
         renderer.requestRender(true);
     }
 
     /**
-     * Zoom in by a factor
+     * 放大指定倍数
      */
     function zoomIn(factor = 1.2, focusPoint = null) {
         const viewport = stateManager.getViewport();
@@ -74,7 +76,7 @@ export function initViewport(elements, state, renderer) {
     }
 
     /**
-     * Zoom out by a factor
+     * 缩小指定倍数
      */
     function zoomOut(factor = 1.2, focusPoint = null) {
         const viewport = stateManager.getViewport();
@@ -82,14 +84,15 @@ export function initViewport(elements, state, renderer) {
     }
 
     /**
-     * Reset zoom to 100%
+     * 重置缩放到100%
      */
     function resetZoom() {
         setScale(1.0);
     }
 
     /**
-     * Convert screen coordinates to world coordinates
+     * 将屏幕坐标转换为世界坐标
+     * 这是关键函数，确保考虑当前视口变换
      */
     function screenToWorld(x, y) {
         const {scale, offsetX, offsetY} = stateManager.getViewport();
@@ -100,7 +103,8 @@ export function initViewport(elements, state, renderer) {
     }
 
     /**
-     * Convert world coordinates to screen coordinates
+     * 将世界坐标转换为屏幕坐标
+     * 这也是关键函数，与screenToWorld相反
      */
     function worldToScreen(x, y) {
         const {scale, offsetX, offsetY} = stateManager.getViewport();
@@ -111,7 +115,8 @@ export function initViewport(elements, state, renderer) {
     }
 
     /**
-     * Pan the viewport by delta amounts
+     * 移动视口指定增量
+     * 注意：这里改变的是视口偏移，而非节点位置
      */
     function pan(deltaX, deltaY) {
         const viewport = stateManager.getViewport();
@@ -121,18 +126,18 @@ export function initViewport(elements, state, renderer) {
             offsetY: viewport.offsetY + deltaY / viewport.scale
         });
 
-        // Request render update
+        // 请求渲染更新
         renderer.requestRender(true);
     }
 
     /**
-     * Start panning the viewport
+     * 开始平移视口
      */
     function startPan(e) {
         isPanning = true;
         lastPanPosition = {x: e.clientX, y: e.clientY};
 
-        // Add pan-specific cursor class to canvas
+        // 添加平移光标样式到画布
         elements.canvas.classList.add('panning');
 
         document.addEventListener('mousemove', onPanMove);
@@ -140,12 +145,12 @@ export function initViewport(elements, state, renderer) {
     }
 
     /**
-     * Handle mouse movement during panning
+     * 处理平移过程中的鼠标移动
      */
     function onPanMove(e) {
         if (!isPanning) return;
 
-        // Calculate delta since last move
+        // 计算相对于上次移动的增量
         const deltaX = e.clientX - lastPanPosition.x;
         const deltaY = e.clientY - lastPanPosition.y;
 
@@ -155,7 +160,7 @@ export function initViewport(elements, state, renderer) {
     }
 
     /**
-     * Stop panning the viewport
+     * 停止视口平移
      */
     function stopPan() {
         isPanning = false;
@@ -166,24 +171,26 @@ export function initViewport(elements, state, renderer) {
     }
 
     /**
-     * Center viewport on a specific point
+     * 将视口中心定位到指定点
+     * @param {number} x - 世界坐标X
+     * @param {number} y - 世界坐标Y
      */
     function centerOn(x, y) {
         const {canvas} = elements;
         const viewport = stateManager.getViewport();
 
-        // Calculate center offset
+        // 计算居中偏移
         const offsetX = -x + canvas.clientWidth / (2 * viewport.scale);
         const offsetY = -y + canvas.clientHeight / (2 * viewport.scale);
 
         stateManager.updateViewport({offsetX, offsetY});
 
-        // Request render update
+        // 请求渲染更新
         renderer.requestRender(true);
     }
 
     /**
-     * Center on a specific node
+     * 将视图中心定位到特定节点
      */
     function centerOnNode(nodeId) {
         const nodes = stateManager.getNodes();
@@ -195,14 +202,14 @@ export function initViewport(elements, state, renderer) {
     }
 
     /**
-     * Calculate the bounds of all nodes
+     * 计算所有节点的边界
      */
     function calculateNodesBounds(padding = 50) {
         const nodes = stateManager.getNodes();
 
         if (nodes.length === 0) return null;
 
-        // Calculate bounds of all nodes
+        // 计算所有节点的边界
         let minX = Infinity, minY = Infinity;
         let maxX = -Infinity, maxY = -Infinity;
 
@@ -213,7 +220,7 @@ export function initViewport(elements, state, renderer) {
             maxY = Math.max(maxY, node.y + config.nodeHeight);
         });
 
-        // Add padding
+        // 添加边距
         minX -= padding;
         minY -= padding;
         maxX += padding;
@@ -231,7 +238,7 @@ export function initViewport(elements, state, renderer) {
     }
 
     /**
-     * Fit all nodes in the viewport
+     * 将所有节点适配到视口
      */
     function fitAllNodes(padding = 50) {
         const nodes = stateManager.getNodes();
@@ -241,7 +248,7 @@ export function initViewport(elements, state, renderer) {
         const bounds = calculateNodesBounds(padding);
         if (!bounds) return;
 
-        // Calculate required scale
+        // 计算需要的缩放比例
         const {canvas} = elements;
         const contentWidth = bounds.width;
         const contentHeight = bounds.height;
@@ -249,31 +256,31 @@ export function initViewport(elements, state, renderer) {
         const scaleY = canvas.clientHeight / contentHeight;
         const newScale = Math.min(scaleX, scaleY, config.viewport.maxScale);
 
-        // Update viewport
+        // 更新视口
         stateManager.updateViewport({
             scale: newScale,
             offsetX: -bounds.center.x + canvas.clientWidth / (2 * newScale),
             offsetY: -bounds.center.y + canvas.clientHeight / (2 * newScale)
         });
 
-        // Request render update
+        // 请求渲染更新
         renderer.requestRender(true);
     }
 
     /**
-     * Set up event listeners and initialize canvas dragging
+     * 设置事件监听并初始化画布拖拽
      */
     function setupEventListeners() {
-        // Wheel event for zooming
+        // 鼠标滚轮事件用于缩放
         elements.canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
 
-            // Get mouse position relative to canvas
+            // 获取鼠标相对于画布的位置
             const rect = elements.canvas.getBoundingClientRect();
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
 
-            // Zoom in or out based on wheel direction
+            // 根据滚轮方向放大或缩小
             if (e.deltaY < 0) {
                 zoomIn(1.1, {x: mouseX, y: mouseY});
             } else {
@@ -281,16 +288,16 @@ export function initViewport(elements, state, renderer) {
             }
         });
 
-        // Middle mouse button or Alt+left mouse button for panning
+        // 中键或Alt+左键用于平移
         elements.canvas.addEventListener('mousedown', (e) => {
-            // Middle mouse button or Alt+left click to start panning
+            // 中键或Alt+左键开始平移
             if (e.button === 1 || (e.button === 0 && e.altKey)) {
                 e.preventDefault();
                 startPan(e);
             }
         });
 
-        // Track Alt key state
+        // 跟踪Alt键状态
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Alt') {
                 isAltKeyPressed = true;
@@ -305,7 +312,7 @@ export function initViewport(elements, state, renderer) {
             }
         });
 
-        // Zoom control buttons
+        // 缩放控制按钮
         const zoomInBtn = document.getElementById('zoom-in-btn');
         const zoomOutBtn = document.getElementById('zoom-out-btn');
         const zoomResetBtn = document.getElementById('zoom-reset-btn');
@@ -322,17 +329,17 @@ export function initViewport(elements, state, renderer) {
             zoomResetBtn.addEventListener('click', () => resetZoom());
         }
 
-        // Fit All button
+        // 适应全部按钮
         const fitAllBtn = document.getElementById('fit-all-btn');
         if (fitAllBtn) {
             fitAllBtn.addEventListener('click', () => fitAllNodes());
         }
     }
 
-    // Initialize
+    // 初始化
     setupEventListeners();
 
-    // Return public API
+    // 返回公共API
     return {
         setScale,
         zoomIn,

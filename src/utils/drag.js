@@ -5,21 +5,21 @@
 import {logger} from './logger.js';
 
 /**
- * Set up drag and drop for a node element
- * @param {HTMLElement} nodeElement - The node element to make draggable
- * @param {Object} options - Configuration options
+ * 为节点元素设置拖拽
+ * @param {HTMLElement} nodeElement - 要设置拖拽的节点元素
+ * @param {Object} options - 配置选项
  */
 export function setupNodeDragAndDrop(nodeElement, options = {}) {
     const {
         state
     } = options;
 
-    // Make element draggable
+    // 使元素可拖拽
     nodeElement.draggable = true;
 
-    // Drag start
+    // 拖拽开始
     nodeElement.addEventListener('dragstart', (e) => {
-        // Skip if dragging from a port
+        // 如果从端口拖拽，跳过
         if (e.target.classList.contains('port')) {
             e.preventDefault();
             return false;
@@ -27,11 +27,11 @@ export function setupNodeDragAndDrop(nodeElement, options = {}) {
 
         const nodeId = nodeElement.getAttribute('data-id');
 
-        // Set node ID as data
+        // 设置节点ID为数据
         e.dataTransfer.setData('application/node-id', nodeId);
         e.dataTransfer.effectAllowed = 'move';
 
-        // Select node if not already selected
+        // 如果节点未被选中，选中它
         if (state) {
             const selectedNodes = state.getSelectedNodes();
             if (!selectedNodes.includes(nodeId)) {
@@ -42,7 +42,7 @@ export function setupNodeDragAndDrop(nodeElement, options = {}) {
             }
         }
 
-        // Create drag image with proper styling
+        // 创建有适当样式的拖拽图像
         const dragImage = nodeElement.cloneNode(true);
         dragImage.style.opacity = '0.7';
         dragImage.style.position = 'absolute';
@@ -50,14 +50,14 @@ export function setupNodeDragAndDrop(nodeElement, options = {}) {
         dragImage.style.backgroundColor = 'rgba(255, 255, 255, 0.7)';
         document.body.appendChild(dragImage);
 
-        // Set drag image centered on mouse
+        // 设置拖拽图像以鼠标为中心
         e.dataTransfer.setDragImage(
             dragImage,
             dragImage.offsetWidth / 2,
             dragImage.offsetHeight / 2
         );
 
-        // Clean up after dragstart
+        // 拖拽开始后清理
         setTimeout(() => {
             if (dragImage.parentNode === document.body) {
                 document.body.removeChild(dragImage);
