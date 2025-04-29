@@ -89,7 +89,9 @@ export function initRenderer(elements, state) {
 
         // 如果可见，渲染Minimap
         if (stateManager.getMinimap().isVisible) {
-            renderMinimap();
+            if (window.editor && window.editor.modules && window.editor.modules.minimap) {
+                window.editor.modules.minimap.renderMinimap();
+            }
         }
 
         // 清除更新标志和集合
@@ -580,15 +582,6 @@ export function initRenderer(elements, state) {
     }
 
     /**
-     * 渲染Minimap
-     */
-    function renderMinimap() {
-        if (window.editor && window.editor.modules && window.editor.modules.minimap) {
-            window.editor.modules.minimap.renderMinimap();
-        }
-    }
-
-    /**
      * 计算所有节点的边界
      */
     function calculateNodesBounds(nodes) {
@@ -719,7 +712,6 @@ export function initRenderer(elements, state) {
         requestConnectionUpdate,
         renderPendingConnection,
         renderGrid,
-        renderMinimap,
         updateCanvasDimensions,
         calculateNodesBounds,
         updateNodePortVisibility,

@@ -1,10 +1,7 @@
 /**
  * Viewport Module - 管理画布视口和缩放
  */
-import {eventBus, EVENTS} from '../core/events.js';
-import {logger} from '../utils/logger.js';
 import {config} from '../core/config.js';
-import {Point, Rectangle} from '../utils/geometry.js';
 
 export function initViewport(elements, state, renderer) {
     const stateManager = state;
@@ -338,18 +335,4 @@ export function initViewport(elements, state, renderer) {
 
     // 初始化
     setupEventListeners();
-
-    // 返回公共API
-    return {
-        setScale,
-        zoomIn,
-        zoomOut,
-        resetZoom,
-        pan,
-        centerOn,
-        centerOnNode,
-        fitAllNodes,
-        screenToWorld,
-        worldToScreen
-    };
 }
