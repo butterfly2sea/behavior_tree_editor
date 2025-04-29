@@ -100,7 +100,8 @@ export function initMinimap(elements, state, renderer) {
     }
 
     /**
-     * 渲染Minimap
+     * 渲染小地图 - 主要实现
+     * 这是小地图渲染的单一真实来源
      */
     function renderMinimap() {
         const {minimap} = elements;
@@ -112,20 +113,23 @@ export function initMinimap(elements, state, renderer) {
         const minimapState = stateManager.getMinimap();
 
         const ctx = minimap.getContext('2d');
+        if (!ctx) return;
+
+        // 清除画布
         ctx.clearRect(0, 0, minimapState.width, minimapState.height);
 
         // 计算所有节点的边界
         const bounds = calculateNodesBounds(nodes);
 
-        // 计算Minimap的缩放比例
+        // 计算缩放比例
         minimapScale = calculateMinimapScale(bounds);
         const padding = 10;
 
-        // 绘制背景
-        ctx.fillStyle = '#f5f5f5';
+        // 绘制背景 - 使用明确的背景色
+        ctx.fillStyle = '#f9f9f9';
         ctx.fillRect(0, 0, minimapState.width, minimapState.height);
 
-        // 绘制连接线
+        // 绘制连接
         ctx.strokeStyle = '#999';
         ctx.lineWidth = 1;
 
@@ -141,46 +145,46 @@ export function initMinimap(elements, state, renderer) {
 
                 ctx.beginPath();
                 ctx.moveTo(sourceX, sourceY);
-
-                // 绘制曲线
-                const midX = (sourceX + targetX) / 2;
-                const midY = (sourceY + targetY) / 2 + 20;
-                ctx.quadraticCurveTo(midX, midY, targetX, targetY);
+                ctx.lineTo(targetX, targetY)
                 ctx.stroke();
             }
         });
 
-        // 基于节点类别绘制带颜色的节点
+        // 保存绘图上下文状态
+        ctx.save();
+
+        // 绘制节点 - 确保明确设置颜色
         nodes.forEach(node => {
             const x = padding + (node.x - bounds.minX) * minimapScale;
             const y = padding + (node.y - bounds.minY) * minimapScale;
             const width = config.nodeWidth * minimapScale;
             const height = config.nodeHeight * minimapScale;
 
-            // 根据节点类别设置颜色
+            // 强制基于类别设置明确的颜色
             let fillColor;
             switch (node.category) {
                 case 'control':
-                    fillColor = '#6ab8f1'; // 浅蓝色
+                    fillColor = '#6ab8f1'; // 亮蓝色
                     break;
                 case 'decorator':
-                    fillColor = '#7ff888'; // 浅绿色
+                    fillColor = '#7ff888'; // 亮绿色
                     break;
                 case 'action':
-                    fillColor = '#f4c780'; // 浅橙色
+                    fillColor = '#f4c780'; // 亮橙色
                     break;
                 case 'condition':
-                    fillColor = '#e27cf1'; // 浅紫色
+                    fillColor = '#e27cf1'; // 亮紫色
                     break;
                 default:
-                    fillColor = '#f67a7a';
+                    fillColor = '#e3e3e3'; // 默认红色
             }
 
+            // 直接使用类别颜色，确保正确渲染
             ctx.fillStyle = fillColor;
             ctx.strokeStyle = '#666';
             ctx.lineWidth = 0.5;
 
-            // 为节点绘制圆角矩形
+            // 绘制圆角矩形
             const radius = 3;
             ctx.beginPath();
             ctx.moveTo(x + radius, y);
@@ -192,9 +196,13 @@ export function initMinimap(elements, state, renderer) {
             ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
             ctx.lineTo(x, y + radius);
             ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
             ctx.fill();
             ctx.stroke();
         });
+
+        // 恢复绘图上下文状态
+        ctx.restore();
 
         // 绘制视口矩形
         const viewportMinX = -viewport.offsetX / viewport.scale;
@@ -208,11 +216,11 @@ export function initMinimap(elements, state, renderer) {
         const viewportScaledWidth = viewportWidth * minimapScale;
         const viewportScaledHeight = viewportHeight * minimapScale;
 
-        ctx.strokeStyle = '#2196f3'; // 主色
+        ctx.strokeStyle = '#2196f3'; // 主色调
         ctx.lineWidth = 2;
         ctx.strokeRect(viewportX, viewportY, viewportScaledWidth, viewportScaledHeight);
 
-        // 用半透明颜色填充
+        // 填充半透明矩形
         ctx.fillStyle = 'rgba(33, 150, 243, 0.1)';
         ctx.fillRect(viewportX, viewportY, viewportScaledWidth, viewportScaledHeight);
     }

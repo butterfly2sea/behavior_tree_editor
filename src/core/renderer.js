@@ -369,7 +369,7 @@ export function initRenderer(elements, state) {
     /**
      * 更新端口可见性基于节点约束
      */
-    function updateNodePortVisibility(nodeEl, node, getNodeDefFunc = null) {
+    function updateNodePortVisibility(nodeEl, node) {
         const connections = stateManager.getConnections();
         const nodeDef = getNodeDefinition(node.type, node.category, stateManager);
 
@@ -583,74 +583,9 @@ export function initRenderer(elements, state) {
      * 渲染Minimap
      */
     function renderMinimap() {
-        const {minimap} = elements;
-        if (!minimap) return;
-
-        const nodes = stateManager.getNodes();
-        const connections = stateManager.getConnections();
-        const viewport = stateManager.getViewport();
-        const minimapState = stateManager.getMinimap();
-
-        const ctx = minimap.getContext('2d');
-        ctx.clearRect(0, 0, minimapState.width, minimapState.height);
-
-        // 计算所有节点的边界
-        const bounds = calculateNodesBounds(nodes);
-
-        // 计算缩放比例以适应Minimap中的所有节点
-        const padding = 10;
-        const scaleX = (minimapState.width - padding * 2) / bounds.width;
-        const scaleY = (minimapState.height - padding * 2) / bounds.height;
-        const scale = Math.min(scaleX, scaleY);
-
-        // 绘制连接
-        ctx.strokeStyle = '#999';
-        ctx.lineWidth = 1;
-
-        connections.forEach(conn => {
-            const sourceNode = nodes.find(n => n.id === conn.source);
-            const targetNode = nodes.find(n => n.id === conn.target);
-
-            if (sourceNode && targetNode) {
-                const sourceX = padding + (sourceNode.x + config.nodeWidth / 2 - bounds.minX) * scale;
-                const sourceY = padding + (sourceNode.y + config.nodeHeight - bounds.minY) * scale;
-                const targetX = padding + (targetNode.x + config.nodeWidth / 2 - bounds.minX) * scale;
-                const targetY = padding + (targetNode.y - bounds.minY) * scale;
-
-                ctx.beginPath();
-                ctx.moveTo(sourceX, sourceY);
-                ctx.lineTo(targetX, targetY);
-                ctx.stroke();
-            }
-        });
-
-        // 绘制节点
-        ctx.fillStyle = '#ddd';
-
-        nodes.forEach(node => {
-            const x = padding + (node.x - bounds.minX) * scale;
-            const y = padding + (node.y - bounds.minY) * scale;
-            const width = config.nodeWidth * scale;
-            const height = config.nodeHeight * scale;
-
-            ctx.fillRect(x, y, width, height);
-        });
-
-        // 绘制视口矩形
-        const viewportMinX = -viewport.offsetX / viewport.scale;
-        const viewportMinY = -viewport.offsetY / viewport.scale;
-        const container = minimap.parentElement.parentElement;
-        const viewportWidth = container.clientWidth / viewport.scale;
-        const viewportHeight = container.clientHeight / viewport.scale;
-
-        const viewportX = padding + (viewportMinX - bounds.minX) * scale;
-        const viewportY = padding + (viewportMinY - bounds.minY) * scale;
-        const viewportScaledWidth = viewportWidth * scale;
-        const viewportScaledHeight = viewportHeight * scale;
-
-        ctx.strokeStyle = '#f00';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(viewportX, viewportY, viewportScaledWidth, viewportScaledHeight);
+        if (window.editor && window.editor.modules && window.editor.modules.minimap) {
+            window.editor.modules.minimap.renderMinimap();
+        }
     }
 
     /**
