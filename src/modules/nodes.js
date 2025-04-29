@@ -319,6 +319,7 @@ export function initNodes(elements, state, renderer) {
         const nodeId = e.dataTransfer.getData('application/node-id');
         const nodeType = e.dataTransfer.getData('application/node-type');
         const nodeCategory = e.dataTransfer.getData('application/node-category');
+        const {offsetX, offsetY} = stateManager.getViewport();
 
         if (nodeId) {
             const selectedNodes = stateManager.getSelectedNodes();
@@ -332,24 +333,18 @@ export function initNodes(elements, state, renderer) {
                 const newY = worldPos.y;
 
                 // 计算相对于节点中心的偏移量，以实现更自然的拖拽
-                const offsetX = newX - mainNode.x - config.nodeWidth / 2;
-                const offsetY = newY - mainNode.y - config.nodeHeight / 2;
+                const screenOffsetX = newX - mainNode.x - config.nodeWidth / 2;
+                const screenOffsetY = newY - mainNode.y - config.nodeHeight / 2;
 
                 // 对所有选中节点应用相同的偏移量
                 selectedNodes.forEach(selId => {
                     const node = stateManager.getNodes().find(n => n.id === selId);
                     if (node) {
                         stateManager.updateNode(selId, {
-                            x: node.x + offsetX,
-                            y: node.y + offsetY
+                            x: node.x + offsetX + screenOffsetX,
+                            y: node.y + offsetY + screenOffsetY
                         });
                     }
-                });
-            } else {
-                // 单个节点拖拽，直接设置位置
-                stateManager.updateNode(nodeId, {
-                    x: worldPos.x - config.nodeWidth / 2,
-                    y: worldPos.y - config.nodeHeight / 2
                 });
             }
 
