@@ -90,9 +90,25 @@ export function initDialogs(elements, state) {
                 if (connectionId) {
                     stateManager.removeConnection(connectionId);
                     menu.style.display = 'none';
+                    eventBus.emit(EVENTS.CONNECTION_CHANGED, {type: "deleted", id: connectionId})
                 }
             });
         }
+
+        // 添加右键菜单事件
+        document.addEventListener('contextmenu', (e) => {
+            const path = e.target.closest('.connection-path');
+            if (path) {
+                e.preventDefault();
+                const connectionId = path.getAttribute('data-id');
+
+                // 选中连接
+                stateManager.selectConnection(connectionId);
+
+                // 显示右键菜单在鼠标位置
+                showContextMenu(menu, e.clientX, e.clientY);
+            }
+        });
 
         // Listen for connection selection
         eventBus.on(EVENTS.CONNECTION_CHANGED, (data) => {
