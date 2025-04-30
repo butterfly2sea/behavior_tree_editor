@@ -157,30 +157,6 @@ export function initConnections(elements, state, renderer) {
     }
 
     /**
-     * Check if a connection would create a cycle
-     */
-    function wouldCreateCycle(sourceId, targetId) {
-        const connections = stateManager.getConnections();
-
-        // If target is ancestor of source, a cycle would be created
-        let currentId = sourceId;
-        const visited = new Set();
-
-        while (currentId) {
-            if (visited.has(currentId)) break;
-            visited.add(currentId);
-
-            if (currentId === targetId) return true;
-
-            // Find parent of current node
-            const parentConn = connections.find(conn => conn.target === currentId);
-            currentId = parentConn ? parentConn.source : null;
-        }
-
-        return false;
-    }
-
-    /**
      * Show feedback for invalid connection attempts
      */
     function showInvalidConnectionFeedback(nodeId, message) {
@@ -251,6 +227,12 @@ export function initConnections(elements, state, renderer) {
                 });
             }
         });
+
+        eventBus.on(EVENTS.CONNECTION_CHANGED,(data)=>{
+            if (data.type==='deleted'){
+                deleteConnection(data.id)
+            }
+        })
 
         // Handle connection selection from UI
         document.addEventListener('click', (e) => {

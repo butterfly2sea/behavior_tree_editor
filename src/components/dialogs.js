@@ -88,8 +88,6 @@ export function initDialogs(elements, state) {
             deleteConnectionBtn.addEventListener('click', () => {
                 const connectionId = stateManager.getSelectedConnection();
                 if (connectionId) {
-                    stateManager.removeConnection(connectionId);
-                    menu.style.display = 'none';
                     eventBus.emit(EVENTS.CONNECTION_CHANGED, {type: "deleted", id: connectionId})
                 }
             });
@@ -107,24 +105,6 @@ export function initDialogs(elements, state) {
 
                 // 显示右键菜单在鼠标位置
                 showContextMenu(menu, e.clientX, e.clientY);
-            }
-        });
-
-        // Listen for connection selection
-        eventBus.on(EVENTS.CONNECTION_CHANGED, (data) => {
-            if (data.type === 'selected' && data.connectionId) {
-                // Position and show menu
-                const path = document.querySelector(`path[data-id="${data.connectionId}"]`);
-                if (path) {
-                    const rect = path.getBoundingClientRect();
-
-                    // Position in the center of the path
-                    const centerX = rect.left + rect.width / 2;
-                    const centerY = rect.top + rect.height / 2;
-
-                    // Show the menu
-                    showContextMenu(menu, centerX, centerY);
-                }
             }
         });
     }
