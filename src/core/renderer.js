@@ -537,6 +537,8 @@ export function initRenderer(elements, state) {
         const pendingConnection = stateManager.getState().pendingConnection;
         const nodes = stateManager.getNodes();
         const mousePos = stateManager.getState().mousePosition;
+        const {offsetX, offsetY} = stateManager.getViewport();
+        let mousePosInView = {x: mousePos.x + offsetX, y: mousePos.y + offsetY};
 
         if (!pendingConnection) {
             activeConnectionLayer.innerHTML = '';
@@ -566,10 +568,11 @@ export function initRenderer(elements, state) {
         });
 
         // 生成曲线
-        const deltaY = mousePos.y - startY;
+
+        const deltaY = mousePosInView.y - startY;
         const controlY1 = startY + Math.min(Math.abs(deltaY) * 0.3, 40);
-        const controlY2 = mousePos.y - Math.min(Math.abs(deltaY) * 0.3, 40);
-        const pathData = `M ${startX} ${startY} C ${startX} ${controlY1}, ${mousePos.x} ${controlY2}, ${mousePos.x} ${mousePos.y}`;
+        const controlY2 = mousePosInView.y - Math.min(Math.abs(deltaY) * 0.3, 40);
+        const pathData = `M ${startX} ${startY} C ${startX} ${controlY1}, ${mousePosInView.x} ${controlY2}, ${mousePosInView.x} ${mousePosInView.y}`;
 
         path.setAttribute('d', pathData);
 
