@@ -134,7 +134,8 @@ export function initLayout(elements, state, renderer) {
             // Build child hierarchies recursively
             const children = childConnections
                 .map(conn => buildSubtree(conn.target))
-                .filter(Boolean);
+                .filter(Boolean)
+                .sort((a, b) => a.x - b.x);
 
             return {...node, children};
         }
