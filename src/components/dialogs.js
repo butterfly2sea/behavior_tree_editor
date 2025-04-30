@@ -149,10 +149,20 @@ export function initDialogs(elements, state) {
                 const selectedNodes = stateManager.getSelectedNodes();
 
                 if (selectedNodes.length > 0) {
-                    eventBus.emit(EVENTS.TOOLBAR_ACTION, {
-                        action: 'duplicate-selected',
-                        nodeIds: selectedNodes
+                    // 使用nodes模块复制节点
+                    const newNodeIds = [];
+                    selectedNodes.forEach(nodeId => {
+                        // 确保window.editor.modules.nodes存在
+                        if (window.editor && window.editor.modules && window.editor.modules.nodes) {
+                            const newId = window.editor.modules.nodes.cloneNode(nodeId, 50, 50);
+                            if (newId) newNodeIds.push(newId);
+                        }
                     });
+
+                    // 选择新创建的节点
+                    if (newNodeIds.length > 0) {
+                        stateManager.selectNodes(newNodeIds);
+                    }
                 }
 
                 menu.style.display = 'none';
