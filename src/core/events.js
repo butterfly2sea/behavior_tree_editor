@@ -13,7 +13,7 @@ export const EVENTS = {
     NODE_CHANGED: 'node:changed', // type: created, updated, deleted, moved
 
     // Connection events
-    CONNECTION_CHANGED: 'connection:changed', // type: created, deleted, selected
+    CONNECTION_CHANGED: 'connection:changed', // type: created, deleted, selected, unselected
 
     // Selection events
     SELECTION_CHANGED: 'selection:changed',

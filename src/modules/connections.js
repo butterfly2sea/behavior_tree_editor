@@ -255,14 +255,14 @@ export function initConnections(elements, state, renderer) {
         // Handle connection selection from UI
         document.addEventListener('click', (e) => {
             const path = e.target.closest('.connection-path');
+            const selected_connection = stateManager.getSelectedConnection();
             if (path) {
                 const connectionId = path.getAttribute('data-id');
-                stateManager.selectConnection(connectionId);
+                stateManager.selectConnection(connectionId, "selected");
+            } else if (selected_connection) {
+                stateManager.selectConnection(selected_connection, "unselected");
             }
-        });
 
-        // Handle port clicks
-        document.addEventListener('click', (e) => {
             if (e.target.classList.contains('port')) {
                 e.stopPropagation();
 

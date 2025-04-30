@@ -461,15 +461,13 @@ export function initRenderer(elements, state) {
 
         // 处理需要更新的连接
         for (const connectionId of updatedConnectionIds) {
-            const connection = connections.find(c => c.id === connectionId);
-            if (!connection) continue;
-
             // 如果存在，移除现有连接元素
             const existingConnection = document.querySelector(`path[data-id="${connectionId}"]`);
             if (existingConnection) {
                 existingConnection.remove();
             }
-
+            const connection = connections.find(c => c.id === connectionId);
+            if (!connection) continue;
             // 创建新连接元素
             createConnectionElement(connection);
         }
@@ -622,54 +620,42 @@ export function initRenderer(elements, state) {
     function setupEventListeners() {
         // 节点事件
         eventBus.on(EVENTS.NODE_CHANGED, (data) => {
-            if (data.type === 'created' || data.type === 'deleted') {
-                requestFullRender();
-            } else if (data.type === 'updated') {
-                requestNodeUpdate(data.node.id);
-            } else if (data.type === 'batch-updated') {
-                data.nodeIds.forEach(id => requestNodeUpdate(id));
-            } else if (data.type === 'moved') {
-                data.nodeIds.forEach(id => requestNodeUpdate(id));
+            switch (data.type) {
+                case 'created':
+                case 'deleted':
+                    requestRender(true);
+                    break;
+                case 'updated':
+                    requestNodeUpdate(data.node.id);
+                    break;
+                case 'batch-updated':
+                case 'moved':
+                    data.nodeIds.forEach(id => requestNodeUpdate(id));
+                    break;
             }
         });
 
         // 连接事件
         eventBus.on(EVENTS.CONNECTION_CHANGED, (data) => {
-            if (data.type === 'created' || data.type === 'deleted') {
-                requestConnectionUpdate(data.connection.id);
-            } else if (data.type === 'selected') {
-                requestFullRender();
-            }
-        });
+            requestConnectionUpdate(data.id);
+        })
 
         // 视口事件
-        eventBus.on(EVENTS.VIEWPORT_CHANGED, () => {
-            requestFullRender();
-        });
+        eventBus.on(EVENTS.VIEWPORT_CHANGED, requestFullRender);
 
         // 网格事件
-        eventBus.on(EVENTS.GRID_CHANGED, () => {
-            requestFullRender();
-        });
+        eventBus.on(EVENTS.GRID_CHANGED, requestFullRender);
 
         // 选择事件
-        eventBus.on(EVENTS.SELECTION_CHANGED, () => {
-            requestFullRender();
-        });
+        eventBus.on(EVENTS.SELECTION_CHANGED, requestFullRender);
 
         // 监视器事件
-        eventBus.on(EVENTS.MONITOR_CHANGED, () => {
-            requestFullRender();
-        });
+        eventBus.on(EVENTS.MONITOR_CHANGED, requestFullRender);
 
         // 状态重置/加载
-        eventBus.on(EVENTS.STATE_RESET, () => {
-            requestFullRender();
-        });
+        eventBus.on(EVENTS.STATE_RESET, requestFullRender);
 
-        eventBus.on(EVENTS.STATE_LOADED, () => {
-            requestFullRender();
-        });
+        eventBus.on(EVENTS.STATE_LOADED, requestFullRender);
 
         // 窗口大小变化
         window.addEventListener('resize', () => {

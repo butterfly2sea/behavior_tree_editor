@@ -185,7 +185,7 @@ export function initState() {
             state.connections.push(connection);
             eventBus.emit(EVENTS.CONNECTION_CHANGED, {
                 type: 'created',
-                connection
+                id: connection.id
             });
             return connection.id;
         },
@@ -203,7 +203,7 @@ export function initState() {
 
                 eventBus.emit(EVENTS.CONNECTION_CHANGED, {
                     type: 'deleted',
-                    connection
+                    id: connection.id
                 });
                 return true;
             }
@@ -241,12 +241,9 @@ export function initState() {
             eventBus.emit(EVENTS.SELECTION_CHANGED, {nodes: state.selectedNodes});
         },
 
-        selectConnection: (connectionId) => {
-            state.selectedConnection = connectionId;
-            eventBus.emit(EVENTS.CONNECTION_CHANGED, {
-                type: 'selected',
-                connectionId
-            });
+        selectConnection: (connectionId, changeType) => {
+            state.selectedConnection = changeType === 'unselected' ? null : connectionId;
+            eventBus.emit(EVENTS.CONNECTION_CHANGED, {type: changeType, id: connectionId});
         },
 
         // Generation of IDs
