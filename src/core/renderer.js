@@ -293,7 +293,7 @@ export function initRenderer(elements, state) {
 
         // 创建节点元素
         const nodeEl = document.createElement('div');
-        nodeEl.className = `tree-node ${node.type}`;
+        nodeEl.className = `tree-node ${node.category}`;
         nodeEl.setAttribute('data-id', node.id);
         nodeEl.draggable = true;
 

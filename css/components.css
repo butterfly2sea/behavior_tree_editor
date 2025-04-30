@@ -88,28 +88,22 @@ input, select, textarea {
 }
 
 /* Node types */
-.tree-node.Sequence, .tree-node.ReactiveSequence,
-.tree-node.Fallback, .tree-node.ReactiveFallback,
-.tree-node.IfThenElse, .tree-node.WhileDoElse,
-.tree-node.Parallel {
+.tree-node.control {
     border-color: var(--color-control-border);
     background: var(--color-control-bg);
 }
 
-.tree-node.Inverter, .tree-node.ForceSuccess,
-.tree-node.ForceFailure, .tree-node.Repeat,
-.tree-node.Retry, .tree-node.Timeout,
-.tree-node.DelayMs {
+.tree-node.decorator {
     border-color: var(--color-decorator-border);
     background: var(--color-decorator-bg);
 }
 
-.tree-node.Action {
+.tree-node.action {
     border-color: var(--color-action-border);
     background: var(--color-action-bg);
 }
 
-.tree-node.Condition {
+.tree-node.condition {
     border-color: var(--color-condition-border);
     background: var(--color-condition-bg);
 }
