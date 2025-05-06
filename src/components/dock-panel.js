@@ -1,5 +1,5 @@
 /**
- * Dock Panel Component - Manages the node palette and tree view
+ * Dock Panel Component - 管理节点面板和节点树视图
  */
 import {eventBus, EVENTS} from '../core/events.js';
 import {logger} from '../utils/logger.js';
@@ -16,44 +16,61 @@ export function initDockPanel(elements, state, nodesModule) {
     let currentNodeProperties = [];
 
     /**
-     * Initialize the node tree view with categories and node types
+     * 初始化节点树视图，显示分类和节点类型
      */
     function initNodeTreeView() {
         const {nodeTreeView} = elements;
         if (!nodeTreeView) return;
 
-        // Clear existing tree view
+        // 清除现有树视图
         clearElement(nodeTreeView);
 
-        // Get node types from the global NODE_TYPES object
+        // 从全局NODE_TYPES对象获取节点类型
         if (!NODE_TYPES) {
             logger.error('NODE_TYPES not found');
             return;
         }
 
-        // Create category sections
+        // 创建分类部分
         Object.keys(NODE_TYPES).forEach(category => {
             createCategoryInTreeView(category, nodeTreeView);
         });
     }
 
     /**
-     * Create a category section in the tree view
+     * 在树视图中创建分类部分
      */
     function createCategoryInTreeView(category, treeView) {
         const collapsedCategories = stateManager.getState().collapsedCategories;
         const isCollapsed = collapsedCategories[category] || false;
 
-        // Format category name for display
-        const categoryName = category.charAt(0).toUpperCase() + category.slice(1);
+        // 将类别名称转换为中文显示
+        let categoryName;
+        switch (category) {
+            case 'composite':
+                categoryName = '组合节点';
+                break;
+            case 'decorator':
+                categoryName = '装饰节点';
+                break;
+            case 'condition':
+                categoryName = '条件节点';
+                break;
+            case 'action':
+                categoryName = '行为节点';
+                break;
+            default:
+                // 如果是其他类别，首字母大写显示原名
+                categoryName = category.charAt(0).toUpperCase() + category.slice(1);
+        }
 
-        // Create category container
+        // 创建类别容器
         const categoryEl = createElement('div', {
             className: 'tree-category',
             id: `category-${category}`
         });
 
-        // Create header with toggle
+        // 创建header，设置toggle点击事件
         const headerEl = createElement('div', {
             className: `category-header ${isCollapsed ? 'collapsed' : ''}`,
             onclick: () => toggleCategory(category, headerEl, itemsEl)
@@ -62,47 +79,47 @@ export function initDockPanel(elements, state, nodesModule) {
             createElement('span', {}, categoryName)
         ]);
 
-        // Create items container
+        // 创建节点列表容器，根据折叠状态设置类名
         const itemsEl = createElement('div', {
             className: `category-items ${isCollapsed ? 'collapsed' : ''}`
         });
 
-        // Add built-in node types
+        // 添加内置节点类型
         if (NODE_TYPES[category]) {
             NODE_TYPES[category].forEach(nodeType => {
                 createNodeItemElement(nodeType, category, itemsEl);
             });
         }
 
-        // Add custom node types for this category
+        // 添加自定义节点类型
         stateManager.getCustomNodeTypes().forEach(nodeType => {
             if (nodeType.category === category) {
                 createNodeItemElement(nodeType, category, itemsEl);
             }
         });
 
-        // Assemble category
+        // 将header和items添加到类别容器
         categoryEl.appendChild(headerEl);
         categoryEl.appendChild(itemsEl);
         treeView.appendChild(categoryEl);
     }
 
     /**
-     * Toggle category collapse state
+     * 切换类别折叠状态
      */
     function toggleCategory(category, headerEl, itemsEl) {
+        // 切换header和items的样式类
         headerEl.classList.toggle('collapsed');
         itemsEl.classList.toggle('collapsed');
-
-        // Update state
+        // 更新状态
         stateManager.toggleCategoryCollapse(category);
     }
 
     /**
-     * Create a node item element in the tree view
+     * 在树视图中创建节点项元素
      */
     function createNodeItemElement(nodeType, category, container) {
-        // Create node item element
+        // 创建节点项元素
         const nodeEl = createElement('div', {
             className: `node-item ${category}`,
             dataset: {
@@ -111,13 +128,13 @@ export function initDockPanel(elements, state, nodesModule) {
             }
         });
 
-        // Add node name
+        // 添加节点名称
         const contentEl = createElement('div', {
             style: {flex: '1'}
         }, nodeType.name);
         nodeEl.appendChild(contentEl);
 
-        // Add delete button for custom nodes
+        // 为自定义节点添加删除按钮
         if (!nodeType.builtin) {
             const actionsEl = createElement('div', {
                 className: 'node-item-actions',
@@ -149,25 +166,25 @@ export function initDockPanel(elements, state, nodesModule) {
                     const confirmDialog = document.createElement('div');
                     confirmDialog.className = 'confirm-dialog';
                     confirmDialog.style = `
-          position: fixed;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          background: white;
-          padding: 20px;
-          border-radius: 5px;
-          box-shadow: 0 0 10px rgba(0,0,0,0.3);
-          z-index: 1000;
-        `;
+                        position: fixed;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        background: white;
+                        padding: 20px;
+                        border-radius: 5px;
+                        box-shadow: 0 0 10px rgba(0,0,0,0.3);
+                        z-index: 1000;
+                    `;
 
                     confirmDialog.innerHTML = `
-          <h3>确认删除</h3>
-          <p>确定要删除自定义节点类型 "${nodeType.name}" 吗？</p>
-          <div class="confirm-buttons" style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
-            <button id="cancel-delete">取消</button>
-            <button id="confirm-delete" style="background: #f44336; color: white; border: none; padding: 5px 10px;">删除</button>
-          </div>
-        `;
+                        <h3>确认删除</h3>
+                        <p>确定要删除自定义节点类型 "${nodeType.name}" 吗？</p>
+                        <div class="confirm-buttons" style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
+                            <button id="cancel-delete">取消</button>
+                            <button id="confirm-delete" style="background: #f44336; color: white; border: none; padding: 5px 10px;">删除</button>
+                        </div>
+                    `;
 
                     document.body.appendChild(confirmDialog);
 
@@ -198,15 +215,15 @@ export function initDockPanel(elements, state, nodesModule) {
             nodeEl.appendChild(actionsEl);
         }
 
-        // Set up draggable behavior
+        // 设置拖拽行为
         setupNodeItemDraggable(nodeEl);
 
-        // Add to container
+        // 添加到容器
         container.appendChild(nodeEl);
     }
 
     /**
-     * Toggle the dock panel collapsed state
+     * 切换面板折叠状态
      */
     function toggleDockPanel() {
         const {dockPanel} = elements;
@@ -214,7 +231,7 @@ export function initDockPanel(elements, state, nodesModule) {
 
         dockPanel.classList.toggle('collapsed');
 
-        // Update toggle button icon
+        // 更新切换按钮图标
         const toggleBtn = document.getElementById('toggle-dock-btn');
         if (toggleBtn) {
             const icon = toggleBtn.querySelector('i');
@@ -225,7 +242,7 @@ export function initDockPanel(elements, state, nodesModule) {
     }
 
     /**
-     * Show the create node modal
+     * 显示创建节点模态框
      */
     function showCreateNodeModal() {
         const {createNodeModal} = elements;
@@ -235,73 +252,22 @@ export function initDockPanel(elements, state, nodesModule) {
     }
 
     /**
-     * Handle the create node form submission
-     */
-    function handleCreateNodeSubmit(e) {
-        e.preventDefault();
-
-        const nameInput = document.getElementById('custom-node-name');
-        const categorySelect = document.getElementById('custom-node-category');
-
-        if (!nameInput || !categorySelect) return;
-
-        const name = nameInput.value.trim();
-        const category = categorySelect.value;
-
-        if (!name || !category) {
-            alert('Name and category are required');
-            return;
-        }
-
-        // Create a unique type identifier
-        const type = `Custom_${name.replace(/\s+/g, '')}`;
-
-        const properties = getDefaultPropertiesForCategory(category);
-
-        const constraints = getDefaultConstraintsForCategory(category);
-
-        // Create new node type
-        const newNodeType = {
-            type,
-            name,
-            category,
-            builtin: false,
-            description: `Custom ${category} node`,
-            properties,
-            maxChildren: constraints.maxChildren,
-            canBeChildless: constraints.canBeChildless
-        };
-
-        // Add to custom node types
-        stateManager.addCustomNodeType(newNodeType);
-
-        // Reset form and close modal
-        nameInput.value = '';
-
-        const {createNodeModal} = elements;
-        if (createNodeModal) createNodeModal.style.display = 'none';
-
-        logger.info(`Created custom node type: ${name} (${category})`);
-    }
-
-
-    /**
      * 设置事件监听器
      */
     function setupEventListeners() {
-        // Toggle dock panel button
+        // 切换面板按钮
         const toggleDockBtn = document.getElementById('toggle-dock-btn');
         if (toggleDockBtn) {
             toggleDockBtn.addEventListener('click', toggleDockPanel);
         }
 
-        // Add custom node button
+        // 添加自定义节点按钮
         const addNodeBtn = document.getElementById('add-node-btn');
         if (addNodeBtn) {
             addNodeBtn.addEventListener('click', showCreateNodeModal);
         }
 
-        // Modal close buttons
+        // 模态框关闭按钮
         const closeCreateModal = document.getElementById('close-create-modal');
         const cancelCreateNodeBtn = document.getElementById('cancel-create-node');
 
@@ -319,17 +285,18 @@ export function initDockPanel(elements, state, nodesModule) {
             });
         }
 
-        // Listen for node type events
+        // 监听节点类型事件
         eventBus.on(EVENTS.NODE_CHANGED, (data) => {
             if (data.type === 'type-added' || data.type === 'type-removed') {
                 initNodeTreeView();
             }
         });
 
-        // Listen for state loading
+        // 监听状态加载
         eventBus.on(EVENTS.STATE_LOADED, () => {
             initNodeTreeView();
         });
+
         // 添加属性相关的事件处理
         const closePropertyModal = document.getElementById('close-property-modal');
         const cancelAddProperty = document.getElementById('cancel-add-property');
@@ -355,8 +322,6 @@ export function initDockPanel(elements, state, nodesModule) {
     function initCreateNodeModal() {
         const createNodeForm = document.getElementById('create-node-form');
         const categorySelect = document.getElementById('custom-node-category');
-        const propertiesContainer = document.getElementById('node-properties-container');
-        const addPropertyBtn = document.getElementById('add-property-btn');
 
         // 当类别变化时，显示默认属性
         if (categorySelect) {
@@ -367,6 +332,7 @@ export function initDockPanel(elements, state, nodesModule) {
         }
 
         // 添加属性按钮
+        const addPropertyBtn = document.getElementById('add-property-btn');
         if (addPropertyBtn) {
             addPropertyBtn.addEventListener('click', showAddPropertyModal);
         }
@@ -466,16 +432,16 @@ export function initDockPanel(elements, state, nodesModule) {
         const table = document.createElement('table');
         table.className = 'properties-table';
         table.innerHTML = `
-      <thead>
-        <tr>
-          <th>名称</th>
-          <th>类型</th>
-          <th>默认值</th>
-          <th>操作</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    `;
+            <thead>
+                <tr>
+                    <th>名称</th>
+                    <th>类型</th>
+                    <th>默认值</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        `;
 
         const tbody = table.querySelector('tbody');
 
@@ -484,14 +450,14 @@ export function initDockPanel(elements, state, nodesModule) {
             const row = document.createElement('tr');
 
             row.innerHTML = `
-        <td>${prop.name}</td>
-        <td>${prop.type}</td>
-        <td>${prop.default || ''}</td>
-        <td>
-          <button type="button" class="edit-prop-btn" data-index="${index}">编辑</button>
-          <button type="button" class="delete-prop-btn" data-index="${index}">删除</button>
-        </td>
-      `;
+                <td>${prop.name}</td>
+                <td>${prop.type}</td>
+                <td>${prop.default || ''}</td>
+                <td>
+                    <button type="button" class="edit-prop-btn" data-index="${index}">编辑</button>
+                    <button type="button" class="delete-prop-btn" data-index="${index}">删除</button>
+                </td>
+            `;
 
             tbody.appendChild(row);
         });
@@ -611,13 +577,12 @@ export function initDockPanel(elements, state, nodesModule) {
         }
     }
 
-
-    // Initialize
+    // 初始化
     initNodeTreeView();
     initCreateNodeModal();
     setupEventListeners();
 
-    // Return public API
+    // 返回公共API
     return {
         initNodeTreeView,
         toggleDockPanel
