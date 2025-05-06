@@ -1,0 +1,49 @@
+# 依赖目录
+node_modules
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# 构建输出
+dist
+build
+
+# 版本控制
+.git
+.gitignore
+.github
+
+# Docker 相关文件
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# 编辑器和IDE文件
+.idea
+.vscode
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# 日志文件
+*.log
+logs
+
+# 环境文件
+.env
+.env.*
+!.env.example
+
+# 测试相关
+__tests__
+test
+tests
+coverage
+
+# 文档和其他不需要的文件
+docs
+README.md
+CHANGELOG.md
+LICENSE
+*.md

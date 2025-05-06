@@ -23,5 +23,4 @@ Thumbs.db
 .env.local
 
 # Original .gitignore content
-/.venv/
 /.idea
