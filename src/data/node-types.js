@@ -1,10 +1,11 @@
 /**
  * 行为树节点类型定义
- * 按照标准行为树模式重新分类为四大类:
+ * 按照标准行为树模式分类为五大类:
  * - 组合节点(Composite): 控制多个子节点执行顺序的节点
  * - 装饰节点(Decorator): 修改单个子节点行为或结果的节点
  * - 条件节点(Condition): 检查条件的节点，不执行实际行动
  * - 行为节点(Action): 执行具体行动的叶节点
+ * - 子树节点(SubTree): 引用其他行为树的节点
  *
  * 每个节点类型具有以下属性:
  * - type: 节点类型标识符
@@ -54,28 +55,6 @@ export const NODE_TYPES = {
             properties: [],
             maxChildren: null,
             canBeChildless: false
-        },
-        {
-            type: 'SubTree',
-            name: '子树',
-            builtin: true,
-            description: '引用其他行为树作为子树执行。',
-            properties: [
-                {
-                    name: 'ID',
-                    type: 'string',
-                    default: '',
-                    description: '子树的ID'
-                },
-                {
-                    name: '_autoremap',
-                    type: 'boolean',
-                    default: false,
-                    description: '是否自动重映射参数'
-                }
-            ],
-            maxChildren: 0,
-            canBeChildless: true
         }
     ],
 
@@ -192,7 +171,7 @@ export const NODE_TYPES = {
                     description: '是否只判定垂直向是否到达'
                 }
             ],
-            maxChildren: 0,
+            maxChildren: 1,
             canBeChildless: true
         },
         {
@@ -208,7 +187,7 @@ export const NODE_TYPES = {
                     description: '延迟时间(毫秒)'
                 }
             ],
-            maxChildren: 0,
+            maxChildren: 1,
             canBeChildless: true
         },
         {
@@ -224,7 +203,7 @@ export const NODE_TYPES = {
                     description: '到点距离(米)'
                 }
             ],
-            maxChildren: 0,
+            maxChildren: 1,
             canBeChildless: true
         },
         {
@@ -233,7 +212,7 @@ export const NODE_TYPES = {
             builtin: true,
             description: '检测是否停止搜索，依据是否收到目标位置消息进行判定。',
             properties: [],
-            maxChildren: 0,
+            maxChildren: 1,
             canBeChildless: true
         },
         {
@@ -255,7 +234,7 @@ export const NODE_TYPES = {
                     description: '目标航向'
                 }
             ],
-            maxChildren: 0,
+            maxChildren: 1,
             canBeChildless: true
         },
         {
@@ -271,7 +250,7 @@ export const NODE_TYPES = {
                     description: '期望的飞行模式'
                 }
             ],
-            maxChildren: 0,
+            maxChildren: 1,
             canBeChildless: true
         },
         {
@@ -305,7 +284,7 @@ export const NODE_TYPES = {
                     description: '消息对应的rslt参数'
                 }
             ],
-            maxChildren: 0,
+            maxChildren: 1,
             canBeChildless: true
         }
     ],
@@ -652,6 +631,32 @@ export const NODE_TYPES = {
             maxChildren: 0,
             canBeChildless: true
         }
+    ],
+
+    // 子树节点 - 引用其他行为树
+    subtree: [
+        {
+            type: 'SubTree',
+            name: '子树',
+            builtin: true,
+            description: '引用其他行为树作为子树执行。',
+            properties: [
+                {
+                    name: 'ID',
+                    type: 'string',
+                    default: '',
+                    description: '子树的ID'
+                },
+                {
+                    name: '_autoremap',
+                    type: 'boolean',
+                    default: false,
+                    description: '是否自动重映射参数'
+                }
+            ],
+            maxChildren: 0,
+            canBeChildless: true
+        }
     ]
 };
 
@@ -704,6 +709,14 @@ export function getDefaultPropertiesForCategory(category) {
                 description: '条件表达式'
             }];
 
+        case 'subtree':
+            return [{
+                name: 'tree_id',
+                type: 'string',
+                default: '',
+                description: '子树ID'
+            }];
+
         default:
             return [];
     }
@@ -730,6 +743,12 @@ export function getDefaultConstraintsForCategory(category) {
 
         case 'action':
         case 'condition':
+            return {
+                maxChildren: 0, // 不能有子节点
+                canBeChildless: true // 必须是叶节点
+            };
+
+        case 'subtree':
             return {
                 maxChildren: 0, // 不能有子节点
                 canBeChildless: true // 必须是叶节点

@@ -59,6 +59,9 @@ export function initDockPanel(elements, state, nodesModule) {
             case 'action':
                 categoryName = '行为节点';
                 break;
+            case 'subtree':
+                categoryName = '子树节点';
+                break;
             default:
                 // 如果是其他类别，首字母大写显示原名
                 categoryName = category.charAt(0).toUpperCase() + category.slice(1);
