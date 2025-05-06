@@ -68,9 +68,6 @@ function htmlTemplate({attributes, files, meta, publicPath, title}) {
     <div class="dock-panel" id="dock-panel">
         <div class="dock-header">
             <h3>Node Palette</h3>
-            <button id="toggle-dock-btn" class="toggle-dock-btn" title="Toggle Palette">
-                <i class="icon-chevron-left"></i>
-            </button>
         </div>
 
         <div class="tree-view" id="node-tree-view"></div>
@@ -180,16 +177,33 @@ function htmlTemplate({attributes, files, meta, publicPath, title}) {
             </div>
             <div class="form-row">
                 <label for="property-type">类型:</label>
-                <select id="property-type">
+                <select id="property-type" onchange="toggleEnumOptionsSection()">
                     <option value="string">文本</option>
                     <option value="number">数字</option>
                     <option value="boolean">布尔值</option>
+                    <option value="select">枚举(下拉选择)</option>
                 </select>
             </div>
             <div class="form-row">
                 <label for="property-default">默认值:</label>
                 <input type="text" id="property-default">
             </div>
+
+
+            <div class="form-row" id="enum-options-section" style="display: none;">
+                <label for="enum-option-list">枚举选项:</label>
+                <div class="enum-options-container">
+                    <div class="enum-option-list" id="enum-option-list">
+                        <!-- 选项将被动态添加到这里 -->
+                    </div>
+                    <div class="enum-option-controls">
+                        <input type="text" id="new-option-value" placeholder="选项值">
+                        <input type="text" id="new-option-label" placeholder="显示标签(可选)">
+                        <button type="button" id="add-enum-option" class="secondary-btn">添加选项</button>
+                    </div>
+                </div>
+            </div>
+
             <div class="form-row">
                 <label for="property-description">描述:</label>
                 <input type="text" id="property-description">
