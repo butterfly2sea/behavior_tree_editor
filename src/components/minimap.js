@@ -163,7 +163,7 @@ export function initMinimap(elements, state, renderer) {
             // 强制基于类别设置明确的颜色
             let fillColor;
             switch (node.category) {
-                case 'control':
+                case 'composite':
                     fillColor = '#6ab8f1'; // 亮蓝色
                     break;
                 case 'decorator':
@@ -176,7 +176,7 @@ export function initMinimap(elements, state, renderer) {
                     fillColor = '#e27cf1'; // 亮紫色
                     break;
                 default:
-                    fillColor = '#e3e3e3'; // 默认红色
+                    fillColor = '#e3e3e3'; // 默认白色
             }
 
             // 直接使用类别颜色，确保正确渲染

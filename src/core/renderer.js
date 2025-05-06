@@ -395,7 +395,7 @@ export function initRenderer(elements, state) {
                     childPort.classList.remove('disabled');
                     childPort.title = '';
                 }
-            } else if (node.category === 'control') {
+            } else if (node.category === 'composite') {
                 // 控制节点规则
                 if (nodeDef.maxChildren !== null) {
                     const childCount = connections.filter(conn => conn.source === node.id).length;

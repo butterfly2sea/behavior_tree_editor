@@ -88,9 +88,9 @@ input, select, textarea {
 }
 
 /* Node types */
-.tree-node.control {
-    border-color: var(--color-control-border);
-    background: var(--color-control-bg);
+.tree-node.composite {
+    border-color: var(--color-composite-border);
+    background: var(--color-composite-bg);
 }
 
 .tree-node.decorator {
@@ -145,7 +145,7 @@ input, select, textarea {
     border-radius: 50%;
 }
 
-.node-icon.control {
+.node-icon.composite {
     background: var(--color-primary);
 }
 
@@ -295,9 +295,9 @@ input, select, textarea {
     margin-left: var(--spacing-sm);
 }
 
-.node-item.control {
-    background: var(--color-control-bg);
-    border-color: var(--color-control-border);
+.node-item.composite {
+    background: var(--color-composite-bg);
+    border-color: var(--color-composite-border);
 }
 
 .node-item.decorator {

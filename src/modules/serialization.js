@@ -285,8 +285,8 @@ export function initSerialization(elements, state) {
 
                 // Add category
                 switch (nodeType.category) {
-                    case 'control':
-                        xml += 'NodeType="Control"';
+                    case 'composite':
+                        xml += 'NodeType="Composite"';
                         break;
                     case 'decorator':
                         xml += 'NodeType="Decorator"';

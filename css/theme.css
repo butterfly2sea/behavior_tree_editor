@@ -12,8 +12,8 @@
   --color-disabled-border: #999999;
 
   /* Node type colors */
-  --color-control-bg: #e3f2fd;
-  --color-control-border: #90caf9;
+  --color-composite-bg: #e3f2fd;
+  --color-composite-border: #90caf9;
   --color-decorator-bg: #e8f5e9;
   --color-decorator-border: #a5d6a7;
   --color-action-bg: #fff3e0;
