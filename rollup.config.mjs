@@ -137,7 +137,7 @@ function htmlTemplate({ attributes, files, meta, publicPath, title }) {
             <div class="form-row">
                 <label for="custom-node-category">类别:</label>
                 <select id="custom-node-category">
-                    <option value="control">Control</option>
+                    <option value="control">Composite</option>
                     <option value="decorator">Decorator</option>
                     <option value="action">Action</option>
                     <option value="condition">Condition</option>
