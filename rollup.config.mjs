@@ -9,17 +9,17 @@ import postcss from 'rollup-plugin-postcss';
 const production = !process.env.ROLLUP_WATCH;
 
 // HTML template function for @rollup/plugin-html
-function htmlTemplate({ attributes, files, meta, publicPath, title }) {
-  // 提取CSS和JS文件
-  const scripts = (files.js || [])
-    .map(({ fileName }) => `<script src="${publicPath}${fileName}"></script>`)
-    .join('\n');
+function htmlTemplate({attributes, files, meta, publicPath, title}) {
+    // 提取CSS和JS文件
+    const scripts = (files.js || [])
+        .map(({fileName}) => `<script src="${publicPath}${fileName}"></script>`)
+        .join('\n');
 
-  const links = (files.css || [])
-    .map(({ fileName }) => `<link rel="stylesheet" href="${publicPath}${fileName}">`)
-    .join('\n');
+    const links = (files.css || [])
+        .map(({fileName}) => `<link rel="stylesheet" href="${publicPath}${fileName}">`)
+        .join('\n');
 
-  return `<!DOCTYPE html>
+    return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -137,10 +137,11 @@ function htmlTemplate({ attributes, files, meta, publicPath, title }) {
             <div class="form-row">
                 <label for="custom-node-category">类别:</label>
                 <select id="custom-node-category">
-                    <option value="control">Composite</option>
-                    <option value="decorator">Decorator</option>
-                    <option value="action">Action</option>
-                    <option value="condition">Condition</option>
+                    <option value="composite">组合节点</option>
+                    <option value="decorator">装饰节点</option>
+                    <option value="action">行为节点</option>
+                    <option value="condition">条件节点</option>
+                    <option value="subtree">子树节点</option>
                 </select>
             </div>
 
@@ -231,53 +232,62 @@ ${scripts}
 }
 
 export default {
-  input: 'src/main.js', // 使用新的入口文件
-  output: {
-    file: 'dist/bundle.js',
-    format: 'iife',
-    sourcemap: !production,
-    name: 'BehaviorTreeEditor'
-  },
-  plugins: [
-    // Resolve node modules
-    resolve({
-      browser: true
-    }),
+    input: 'src/main.js', // 入口文件保持不变
+    output: {
+        file: 'dist/bundle.js',
+        format: 'iife',
+        sourcemap: !production,
+        name: 'BehaviorTreeEditor'
+    },
+    plugins: [
+        // 解析节点模块
+        resolve({
+            browser: true,
+            extensions: ['.mjs', '.js', '.json'] // 明确添加对.mjs文件的支持
+        }),
 
-    // Bundle CSS files
-    postcss({
-      extract: true, // 提取到单独的CSS文件
-      minimize: production
-    }),
+        // 处理CSS文件
+        postcss({
+            extract: true, // 提取到单独的CSS文件
+            minimize: production,
+            // 添加支持子树节点的样式处理
+            inject: false, // 不自动注入CSS
+            extensions: ['.css'] // 明确CSS扩展名
+        }),
 
-    // Generate HTML from template
-    html({
-      title: 'BehaviorTree.CPP Editor',
-      template: htmlTemplate
-    }),
+        // 生成HTML
+        html({
+            title: 'BehaviorTree.CPP Editor',
+            template: htmlTemplate,
+            // 确保HTML模板包含对子树节点的支持
+            fileName: 'index.html'
+        }),
 
-    // 只在生产环境中复制资源
-    production && copy({
-      targets: [
-        { src: 'assets/**/*', dest: 'dist/assets' }
-      ],
-      verbose: true
-    }),
+        // 仅在生产环境复制资源
+        production && copy({
+            targets: [
+                {src: 'assets/**/*', dest: 'dist/assets'}
+            ],
+            verbose: true
+        }),
 
-    // Development server
-    !production && serve({
-      contentBase: 'dist',
-      port: 3000,
-      open: true
-    }),
+        // 开发服务器
+        !production && serve({
+            contentBase: 'dist',
+            port: 3000,
+            open: true
+        }),
 
-    // Live reload in development
-    !production && livereload('dist'),
+        // 开发中的实时重载
+        !production && livereload('dist'),
 
-    // Minify in production
-    production && terser()
-  ],
-  watch: {
-    clearScreen: false
-  }
+        // 生产环境压缩
+        production && terser()
+    ].filter(Boolean), // 移除插件数组中的空值
+
+    // 监视配置
+    watch: {
+        clearScreen: false,
+        include: ['src/**', 'css/**'] // 明确包含css目录
+    }
 };
