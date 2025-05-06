@@ -493,6 +493,14 @@ export function initDockPanel(elements, state, nodesModule) {
             const form = document.getElementById('add-property-form');
             if (form) form.reset();
 
+            // 重置枚举选项列表
+            const optionList = document.getElementById('enum-option-list');
+            if (optionList) optionList.innerHTML = '';
+
+            // 隐藏枚举选项部分（默认选择string类型）
+            const enumSection = document.getElementById('enum-options-section');
+            if (enumSection) enumSection.style.display = 'none';
+
             modal.style.display = 'block';
 
             // 设置表单提交事件
@@ -509,23 +517,123 @@ export function initDockPanel(elements, state, nodesModule) {
                     return;
                 }
 
-                // 添加新属性
-                currentNodeProperties.push({
+                // 创建新属性对象
+                const newProperty = {
                     name,
                     type,
                     default: defaultValue,
                     description
-                });
+                };
+
+                // 如果是枚举类型，收集选项
+                if (type === 'select') {
+                    // 从DOM中获取所有选项
+                    const optionItems = document.querySelectorAll('.enum-option-item');
+                    if (optionItems.length === 0) {
+                        alert('枚举类型必须至少有一个选项');
+                        return;
+                    }
+
+                    // 收集选项并添加到属性对象
+                    const options = [];
+                    optionItems.forEach(item => {
+                        const value = item.getAttribute('data-value');
+                        const label = item.getAttribute('data-label') || value;
+
+                        if (label && value) {
+                            if (label === value) {
+                                options.push(value);
+                            } else {
+                                options.push({value, label});
+                            }
+                        }
+                    });
+
+                    newProperty.options = options;
+                }
+
+                // 添加新属性
+                currentNodeProperties.push(newProperty);
 
                 // 更新列表并关闭模态框
                 updatePropertiesList();
                 modal.style.display = 'none';
             };
+
+            // 设置添加枚举选项按钮事件
+            const addOptionBtn = document.getElementById('add-enum-option');
+            if (addOptionBtn) {
+                addOptionBtn.onclick = addEnumOption;
+            }
+
+            // 设置属性类型变更事件
+            const typeSelect = document.getElementById('property-type');
+            if (typeSelect) {
+                typeSelect.onchange = toggleEnumOptionsSection;
+            }
         }
     }
 
     /**
+     * 切换枚举选项部分的显示状态
+     */
+    function toggleEnumOptionsSection() {
+        const propertyType = document.getElementById('property-type').value;
+        const enumOptionsSection = document.getElementById('enum-options-section');
+
+        if (enumOptionsSection) {
+            enumOptionsSection.style.display = propertyType === 'select' ? 'block' : 'none';
+        }
+    }
+
+    /**
+     * 添加枚举选项到列表
+     */
+    function addEnumOption() {
+        const optionValue = document.getElementById('new-option-value').value.trim();
+        const optionLabel = document.getElementById('new-option-label').value.trim();
+        const optionList = document.getElementById('enum-option-list');
+
+        if (!optionValue) {
+            alert('选项值不能为空');
+            return;
+        }
+
+        // 创建选项项
+        const optionItem = document.createElement('div');
+        optionItem.className = 'enum-option-item';
+        optionItem.setAttribute('data-value', optionValue);
+        if (optionLabel) {
+            optionItem.setAttribute('data-label', optionLabel);
+        }
+
+        // 显示内容
+        const displayText = optionLabel ?
+            `${optionLabel} (值: ${optionValue})` :
+            optionValue;
+
+        optionItem.innerHTML = `
+        <span>${displayText}</span>
+        <button type="button" class="remove-option" title="删除此选项">×</button>
+    `;
+
+        // 添加删除按钮事件
+        const removeBtn = optionItem.querySelector('.remove-option');
+        removeBtn.onclick = function () {
+            optionList.removeChild(optionItem);
+        };
+
+        // 添加到列表
+        optionList.appendChild(optionItem);
+
+        // 清空输入
+        document.getElementById('new-option-value').value = '';
+        document.getElementById('new-option-label').value = '';
+    }
+
+    /**
      * 编辑属性
+     * 修改版本，支持枚举类型
      */
     function editProperty(index) {
         const property = currentNodeProperties[index];
@@ -538,6 +646,55 @@ export function initDockPanel(elements, state, nodesModule) {
             document.getElementById('property-type').value = property.type;
             document.getElementById('property-default').value = property.default || '';
             document.getElementById('property-description').value = property.description || '';
+
+            // 处理枚举选项
+            const enumSection = document.getElementById('enum-options-section');
+            const optionList = document.getElementById('enum-option-list');
+
+            // 清空选项列表
+            if (optionList) optionList.innerHTML = '';
+
+            // 如果是枚举类型，显示选项部分并填充已有选项
+            if (property.type === 'select' && property.options) {
+                if (enumSection) enumSection.style.display = 'block';
+
+                // 填充选项
+                if (Array.isArray(property.options)) {
+                    property.options.forEach(option => {
+                        // 创建选项元素
+                        const optionItem = document.createElement('div');
+                        optionItem.className = 'enum-option-item';
+
+                        // 处理简单值和对象形式的选项
+                        if (typeof option === 'object' && option.value !== undefined) {
+                            optionItem.setAttribute('data-value', option.value);
+                            optionItem.setAttribute('data-label', option.label || option.value);
+                            optionItem.innerHTML = `
+                            <span>${option.label || option.value} (值: ${option.value})</span>
+                            <button type="button" class="remove-option" title="删除此选项">×</button>
+                        `;
+                        } else {
+                            optionItem.setAttribute('data-value', option);
+                            optionItem.innerHTML = `
+                            <span>${option}</span>
+                            <button type="button" class="remove-option" title="删除此选项">×</button>
+                        `;
+                        }
+
+                        // 添加删除按钮事件
+                        const removeBtn = optionItem.querySelector('.remove-option');
+                        removeBtn.onclick = function () {
+                            optionList.removeChild(optionItem);
+                        };
+
+                        // 添加到列表
+                        optionList.appendChild(optionItem);
+                    });
+                }
+            } else {
+                // 非枚举类型，隐藏选项部分
+                if (enumSection) enumSection.style.display = 'none';
+            }
 
             modal.style.display = 'block';
 
@@ -555,18 +712,60 @@ export function initDockPanel(elements, state, nodesModule) {
                     return;
                 }
 
-                // 更新属性
-                currentNodeProperties[index] = {
+                // 更新属性对象
+                const updatedProperty = {
                     name,
                     type,
                     default: defaultValue,
                     description
                 };
 
+                // 如果是枚举类型，收集选项
+                if (type === 'select') {
+                    // 从DOM中获取所有选项
+                    const optionItems = document.querySelectorAll('.enum-option-item');
+                    if (optionItems.length === 0) {
+                        alert('枚举类型必须至少有一个选项');
+                        return;
+                    }
+
+                    // 收集选项并添加到属性对象
+                    const options = [];
+                    optionItems.forEach(item => {
+                        const value = item.getAttribute('data-value');
+                        const label = item.getAttribute('data-label') || value;
+
+                        if (label && value) {
+                            if (label === value) {
+                                options.push(value);
+                            } else {
+                                options.push({value, label});
+                            }
+                        }
+                    });
+
+                    updatedProperty.options = options;
+                }
+
+                // 更新属性
+                currentNodeProperties[index] = updatedProperty;
+
                 // 更新列表并关闭模态框
                 updatePropertiesList();
                 modal.style.display = 'none';
             };
+
+            // 设置添加枚举选项按钮事件
+            const addOptionBtn = document.getElementById('add-enum-option');
+            if (addOptionBtn) {
+                addOptionBtn.onclick = addEnumOption;
+            }
+
+            // 设置属性类型变更事件
+            const typeSelect = document.getElementById('property-type');
+            if (typeSelect) {
+                typeSelect.onchange = toggleEnumOptionsSection;
+            }
         }
     }
 

@@ -46,7 +46,7 @@ export function initPropertiesPanel(elements, state, renderer) {
     function renderSingleNodeProperties(nodeId) {
         const {propertiesContent} = elements;
 
-        // Clear panel
+        // 清除面板
         clearElement(propertiesContent);
 
         const node = stateManager.getNodes().find(n => n.id === nodeId);
@@ -55,7 +55,7 @@ export function initPropertiesPanel(elements, state, renderer) {
             return;
         }
 
-        // Get node type definition
+        // 获取节点类型定义
         let nodeTypeDef = getNodeDefinition(node.type, node.category);
 
         // 特别处理：如果找不到节点定义，尝试从NODE_TYPES和自定义节点类型中查找
@@ -155,7 +155,7 @@ export function initPropertiesPanel(elements, state, renderer) {
                         break;
 
                     case 'select':
-                        // 为选择类型创建下拉框
+                        // 为选择类型创建下拉框，传入选项
                         propField = createSelectField(
                             prop.name,
                             value,
@@ -322,15 +322,51 @@ export function initPropertiesPanel(elements, state, renderer) {
             }
         });
 
-        // 添加选项
-        options.forEach(opt => {
-            const option = createElement('option', {
-                value: opt.value || opt,
-                selected: (opt.value || opt) === value
-            }, opt.label || opt);
+        // 处理不同格式的选项
+        if (options && Array.isArray(options)) {
+            // 添加选项
+            options.forEach(opt => {
+                // 处理对象形式的选项 {value, label}
+                if (typeof opt === 'object' && opt !== null) {
+                    const optValue = opt.value !== undefined ? opt.value : '';
+                    const optLabel = opt.label || optValue;
 
-            select.appendChild(option);
-        });
+                    const option = createElement('option', {
+                        value: optValue,
+                        selected: optValue === value
+                    }, optLabel);
+
+                    select.appendChild(option);
+                }
+                // 处理简单值形式的选项
+                else {
+                    const option = createElement('option', {
+                        value: opt,
+                        selected: opt === value
+                    }, opt);
+
+                    select.appendChild(option);
+                }
+            });
+        }
+        if (value !== undefined && value !== null) {
+            select.value = value;
+
+            // 如果没有匹配的选项，需要检查值的类型（字符串vs数字）
+            if (select.value !== value.toString()) {
+                // 遍历所有选项寻找匹配项
+                for (let i = 0; i < select.options.length; i++) {
+                    const optionValue = select.options[i].value;
+
+                    // 尝试转换类型后比较
+                    if (optionValue == value) { // 使用==而非===进行类型转换比较
+                        select.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+        }
+
 
         container.appendChild(select);
         return container;
@@ -431,17 +467,32 @@ export function initPropertiesPanel(elements, state, renderer) {
     /**
      * Create a property field with label and input
      */
-    function createPropertyField(label, type, value, onChange, readonly = false) {
+    function createPropertyField(label, type, value, onChange, readonly = false, options = null) {
+        // 对于选择类型使用专门的函数
+        if (type === 'select' && options) {
+            return createSelectField(label, value, options, onChange);
+        }
+
+        // 针对其他类型的处理保持不变
         const container = createElement('div', {className: 'parameter-row'});
 
         container.appendChild(createElement('label', {}, label));
 
+        const inputType = getInputTypeForPropertyType(type);
         const input = createElement('input', {
-            type: type,
+            type: inputType,
             className: 'property-value',
-            value: value,
+            value: type === 'boolean' ? (value === 'true' || value === true) : value,
+            checked: type === 'boolean' ? (value === 'true' || value === true) : undefined,
             readonly: readonly,
-            onchange: onChange ? (e) => onChange(e.target.value) : null
+            onchange: onChange ? (e) => {
+                // 对于checkbox类型，使用checked属性
+                if (type === 'boolean') {
+                    onChange(e.target.checked);
+                } else {
+                    onChange(e.target.value);
+                }
+            } : null
         });
 
         container.appendChild(input);
@@ -495,10 +546,10 @@ export function initPropertiesPanel(elements, state, renderer) {
         eventBus.on(EVENTS.NODE_CHANGED, updatePropertiesPanel);
     }
 
-    // Initialize
+// Initialize
     setupEventListeners();
 
-    // Return public API
+// Return public API
     return {
         updatePropertiesPanel
     };
