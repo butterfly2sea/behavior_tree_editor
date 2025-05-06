@@ -1,2 +1,27 @@
+# Dependencies
+/node_modules/
+
+# Build output
+/dist/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor directories and files
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.local
+
+# Original .gitignore content
 /.venv/
 /.idea
