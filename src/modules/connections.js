@@ -218,18 +218,21 @@ export function initConnections(elements, state, renderer) {
     function setupEventListeners() {
         // When a node is deleted, remove its connections
         eventBus.on(EVENTS.NODE_CHANGED, (data) => {
+            const nodeId = data.node.id;
+            const connections = findConnectionsByNode(nodeId);
             if (data.type === 'deleted') {
-                const nodeId = data.node.id;
-                const connectionsToRemove = findConnectionsByNode(nodeId);
-
-                connectionsToRemove.forEach(conn => {
+                connections.forEach(conn => {
                     deleteConnection(conn.id);
                 });
+            } else {
+                connections.forEach(conn => {
+                    renderer.requestConnectionUpdate(conn.id)
+                })
             }
         });
 
-        eventBus.on(EVENTS.CONNECTION_CHANGED,(data)=>{
-            if (data.type==='deleted'){
+        eventBus.on(EVENTS.CONNECTION_CHANGED, (data) => {
+            if (data.type === 'deleted') {
                 deleteConnection(data.id)
             }
         })
