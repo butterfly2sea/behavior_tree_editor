@@ -6,7 +6,7 @@ import {logger} from '../utils/logger.js';
 import {createElement, clearElement, escapeHtml} from '../utils/dom.js';
 import {getNodeDefinition} from "../data/node-types.js";
 
-export function initPropertiesPanel(elements, state, renderer) {
+export function initPropertiesPanel(elements, state) {
     const stateManager = state;
 
     /**
@@ -136,7 +136,7 @@ export function initPropertiesPanel(elements, state, renderer) {
                         // 为布尔类型创建复选框
                         propField = createBooleanField(
                             prop.name,
-                            value === 'true' || value === true,
+                            value === true || value === 'true',
                             (newValue) => {
                                 updateProperty(nodeId, prop.name, newValue);
                             }
@@ -309,20 +309,12 @@ export function initPropertiesPanel(elements, state, renderer) {
     function createSelectField(label, value, options, onChange) {
         const container = createElement('div', {className: 'parameter-row'});
 
-        container.appendChild(createElement('label', {
-            style: {
-                flex: '1'
-            }
-        }, label));
+        container.appendChild(createElement('label', {style: {flex: '1'}}, label));
 
         const select = createElement('select', {
-            onchange: onChange ? (e) => onChange(e.target.value) : null,
-            style: {
-                width: '120px'
-            }
+            onchange: onChange ? (e) => onChange(e.target.value) : null, style: {width: '120px'}
         });
 
-        // 处理不同格式的选项
         if (options && Array.isArray(options)) {
             // 添加选项
             options.forEach(opt => {
@@ -349,25 +341,6 @@ export function initPropertiesPanel(elements, state, renderer) {
                 }
             });
         }
-        if (value !== undefined && value !== null) {
-            select.value = value;
-
-            // 如果没有匹配的选项，需要检查值的类型（字符串vs数字）
-            if (select.value !== value.toString()) {
-                // 遍历所有选项寻找匹配项
-                for (let i = 0; i < select.options.length; i++) {
-                    const optionValue = select.options[i].value;
-
-                    // 尝试转换类型后比较
-                    if (optionValue == value) { // 使用==而非===进行类型转换比较
-                        select.selectedIndex = i;
-                        break;
-                    }
-                }
-            }
-        }
-
-
         container.appendChild(select);
         return container;
     }
@@ -468,10 +441,6 @@ export function initPropertiesPanel(elements, state, renderer) {
      * Create a property field with label and input
      */
     function createPropertyField(label, type, value, onChange, readonly = false, options = null) {
-        // 对于选择类型使用专门的函数
-        if (type === 'select' && options) {
-            return createSelectField(label, value, options, onChange);
-        }
 
         // 针对其他类型的处理保持不变
         const container = createElement('div', {className: 'parameter-row'});
@@ -482,16 +451,9 @@ export function initPropertiesPanel(elements, state, renderer) {
         const input = createElement('input', {
             type: inputType,
             className: 'property-value',
-            value: type === 'boolean' ? (value === 'true' || value === true) : value,
-            checked: type === 'boolean' ? (value === 'true' || value === true) : undefined,
-            readonly: readonly,
+            value: value,
             onchange: onChange ? (e) => {
-                // 对于checkbox类型，使用checked属性
-                if (type === 'boolean') {
-                    onChange(e.target.checked);
-                } else {
-                    onChange(e.target.value);
-                }
+                onChange(e.target.value);
             } : null
         });
 

@@ -29,6 +29,8 @@ export function createElement(tagName, attributes = {}, children = []) {
             if (value === true) {
                 element.setAttribute('disabled', '');
             }
+        } else if (['checked', 'required', 'selected'].includes(key)) {
+            element[key] = Boolean(value);
         } else {
             element.setAttribute(key, value);
         }
