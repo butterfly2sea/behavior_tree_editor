@@ -134,9 +134,10 @@ export function initPropertiesPanel(elements, state) {
                 switch (prop.type) {
                     case 'boolean':
                         // 为布尔类型创建复选框
-                        propField = createBooleanField(
+                        propField = createPropertyFieldWithPort(
                             prop.name,
-                            value === true || value === 'true',
+                            'checkbox',
+                            isPortFormat(value) ? value : value === true || (typeof value === 'string' && value.toLowerCase() === 'true'),
                             (newValue) => {
                                 updateProperty(nodeId, prop.name, newValue);
                             }
@@ -145,8 +146,9 @@ export function initPropertiesPanel(elements, state) {
 
                     case 'number':
                         // 为数字类型创建数字输入框
-                        propField = createNumberField(
+                        propField = createPropertyFieldWithPort(
                             prop.name,
+                            'number',
                             value,
                             (newValue) => {
                                 updateProperty(nodeId, prop.name, newValue);
@@ -156,19 +158,20 @@ export function initPropertiesPanel(elements, state) {
 
                     case 'select':
                         // 为选择类型创建下拉框，传入选项
-                        propField = createSelectField(
+                        propField = createPropertyFieldWithPort(
                             prop.name,
+                            'select',
                             value,
-                            prop.options || [],
                             (newValue) => {
                                 updateProperty(nodeId, prop.name, newValue);
-                            }
+                            },
+                            prop.options || []
                         );
                         break;
 
                     default:
                         // 默认为文本类型
-                        propField = createPropertyField(
+                        propField = createPropertyFieldWithPort(
                             prop.name,
                             'text',
                             value,
@@ -219,13 +222,13 @@ export function initPropertiesPanel(elements, state) {
         positionSection.appendChild(createElement('h3', {}, '位置'));
 
         // X位置
-        const xField = createNumberField('X', node.x, (value) => {
+        const xField = createPropertyField('X', 'text', node.x, (value) => {
             updateNodePosition(nodeId, parseInt(value), null);
         });
         positionSection.appendChild(xField);
 
         // Y位置
-        const yField = createNumberField('Y', node.y, (value) => {
+        const yField = createPropertyField('Y', 'text', node.y, (value) => {
             updateNodePosition(nodeId, null, parseInt(value));
         });
         positionSection.appendChild(yField);
@@ -257,91 +260,132 @@ export function initPropertiesPanel(elements, state) {
     }
 
     /**
-     * 创建布尔值字段
+     * 工具函数：检查值是否是端口格式
      */
-    function createBooleanField(label, value, onChange) {
-        const container = createElement('div', {className: 'parameter-row'});
-
-        container.appendChild(createElement('label', {
-            style: {
-                flex: '1'
-            }
-        }, label));
-
-        const input = createElement('input', {
-            type: 'checkbox',
-            checked: value,
-            onchange: onChange ? (e) => onChange(e.target.checked) : null
-        });
-
-        container.appendChild(input);
-        return container;
+    function isPortFormat(value) {
+        return value && typeof value === 'string' && /^\{.*\}$/.test(value);
     }
 
-    /**
-     * 创建数字字段
-     */
-    function createNumberField(label, value, onChange) {
+
+    function createPropertyFieldWithPort(label, type, value, onChange, options = null) {
         const container = createElement('div', {className: 'parameter-row'});
-
-        container.appendChild(createElement('label', {
-            style: {
-                flex: '1'
-            }
-        }, label));
-
-        const input = createElement('input', {
-            type: 'number',
-            value: value,
-            onchange: onChange ? (e) => onChange(e.target.value) : null,
-            style: {
-                width: '120px'
-            }
-        });
-
-        container.appendChild(input);
-        return container;
-    }
-
-    /**
-     * 创建选择字段
-     */
-    function createSelectField(label, value, options, onChange) {
-        const container = createElement('div', {className: 'parameter-row'});
-
         container.appendChild(createElement('label', {style: {flex: '1'}}, label));
+        const isPort = isPortFormat(value);
+        if (type === 'checkbox' || type === 'number' || type === 'text') {
+            const input = createElement('input', {
+                type: isPort ? 'text' : type,
+                checked: value,
+                value: isPort ? value.slice(1, -1) : value,
+                onchange: onChange ? (e) => {
+                    if (input.classList.contains("port-property-input")) {
+                        onChange(`{${e.target.value}}`)
+                    } else {
+                        onChange(type === 'checkbox' ? e.target.checked : e.target.value)
+                    }
+                } : null
+            });
+            const checkbox = createElement('input', {
+                type: 'checkbox',
+                checked: isPort,
+                className: 'port-property-input',
+                onchange: (e) => {
+                    let checked = e.target.checked;
+                    if (checked) {
+                        input.type = 'text';
+                    } else {
+                        input.type = type;
+                    }
+                    input.classList.toggle('port-property-input', checked)
+                }
+            })
 
-        const select = createElement('select', {
-            onchange: onChange ? (e) => onChange(e.target.value) : null, style: {width: '120px'}
+            input.classList.toggle('port-property-input', isPort)
+            container.appendChild(input);
+            container.appendChild(checkbox);
+        } else if (type === 'select') {
+            const select = createElement('select', {
+                onchange: onChange ? (e) => onChange(e.target.value) : null,
+                style: {width: '120px', display: isPort ? 'none' : 'block'}
+            });
+
+            const input = createElement('input', {
+                className: 'port-property-input',
+                value: value.slice(1, -1),
+                onchange: onChange ? (e) => onChange(`{${e.target.value}}`) : null,
+                style: {display: isPort ? 'block' : 'none'}
+            })
+
+            if (options && Array.isArray(options)) {
+                // 添加选项
+                options.forEach(opt => {
+                    // 处理对象形式的选项 {value, label}
+                    if (typeof opt === 'object' && opt !== null) {
+                        const optValue = opt.value !== undefined ? opt.value : '';
+                        const optLabel = opt.label || optValue;
+
+                        const option = createElement('option', {
+                            value: optValue,
+                            selected: optValue === value
+                        }, optLabel);
+
+                        select.appendChild(option);
+                    }
+                    // 处理简单值形式的选项
+                    else {
+                        const option = createElement('option', {
+                            value: opt,
+                            selected: opt === value
+                        }, opt);
+
+                        select.appendChild(option);
+                    }
+                });
+            }
+
+            const checkbox = createElement('input', {
+                type: 'checkbox',
+                checked: isPort,
+                onchange: (e) => {
+                    let checked = e.target.checked;
+                    if (checked) {
+                        select.style.display = 'none';
+                        input.style.display = 'block'
+                    } else {
+                        select.style.display = 'block';
+                        input.style.display = 'none'
+                    }
+                }
+            })
+            container.appendChild(select);
+            container.appendChild(input);
+            container.appendChild(checkbox);
+        }
+
+        return container;
+
+    }
+
+    /**
+     * Create a property field with label and input
+     */
+    function createPropertyField(label, type, value, onChange, readonly = false, options = null) {
+
+        // 针对其他类型的处理保持不变
+        const container = createElement('div', {className: 'parameter-row'});
+
+        container.appendChild(createElement('label', {}, label));
+
+        const inputType = getInputTypeForPropertyType(type);
+        const input = createElement('input', {
+            type: inputType,
+            className: 'property-value',
+            value: value,
+            onchange: onChange ? (e) => {
+                onChange(e.target.value);
+            } : null
         });
 
-        if (options && Array.isArray(options)) {
-            // 添加选项
-            options.forEach(opt => {
-                // 处理对象形式的选项 {value, label}
-                if (typeof opt === 'object' && opt !== null) {
-                    const optValue = opt.value !== undefined ? opt.value : '';
-                    const optLabel = opt.label || optValue;
-
-                    const option = createElement('option', {
-                        value: optValue,
-                        selected: optValue === value
-                    }, optLabel);
-
-                    select.appendChild(option);
-                }
-                // 处理简单值形式的选项
-                else {
-                    const option = createElement('option', {
-                        value: opt,
-                        selected: opt === value
-                    }, opt);
-
-                    select.appendChild(option);
-                }
-            });
-        }
-        container.appendChild(select);
+        container.appendChild(input);
         return container;
     }
 
@@ -435,30 +479,6 @@ export function initPropertiesPanel(elements, state) {
         }, `Delete ${nodeIds.length} Node${nodeIds.length > 1 ? 's' : ''}`);
 
         propertiesContent.appendChild(deleteButton);
-    }
-
-    /**
-     * Create a property field with label and input
-     */
-    function createPropertyField(label, type, value, onChange, readonly = false, options = null) {
-
-        // 针对其他类型的处理保持不变
-        const container = createElement('div', {className: 'parameter-row'});
-
-        container.appendChild(createElement('label', {}, label));
-
-        const inputType = getInputTypeForPropertyType(type);
-        const input = createElement('input', {
-            type: inputType,
-            className: 'property-value',
-            value: value,
-            onchange: onChange ? (e) => {
-                onChange(e.target.value);
-            } : null
-        });
-
-        container.appendChild(input);
-        return container;
     }
 
     /**
