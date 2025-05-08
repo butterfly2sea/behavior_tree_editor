@@ -257,7 +257,7 @@ export function initSerialization(elements, state) {
 
         // 检查每个叶子节点的类型
         const invalidLeaves = leafNodes.filter(node =>
-            node.category !== 'action' && node.category !== 'subtree'
+            node.category !== 'action' && node.category !== 'subtree' && node.category !== 'condition'
         );
 
         if (invalidLeaves.length > 0) {

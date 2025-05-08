@@ -171,7 +171,7 @@ export const NODE_TYPES = {
                     description: '是否只判定垂直向是否到达'
                 }
             ],
-            maxChildren: 1,
+            maxChildren: 0,
             canBeChildless: true
         },
         {
@@ -187,7 +187,7 @@ export const NODE_TYPES = {
                     description: '延迟时间(毫秒)'
                 }
             ],
-            maxChildren: 1,
+            maxChildren: 0,
             canBeChildless: true
         },
         {
@@ -203,7 +203,7 @@ export const NODE_TYPES = {
                     description: '到点距离(米)'
                 }
             ],
-            maxChildren: 1,
+            maxChildren: 0,
             canBeChildless: true
         },
         {
@@ -212,7 +212,7 @@ export const NODE_TYPES = {
             builtin: true,
             description: '检测是否停止搜索，依据是否收到目标位置消息进行判定。',
             properties: [],
-            maxChildren: 1,
+            maxChildren: 0,
             canBeChildless: true
         },
         {
@@ -234,7 +234,7 @@ export const NODE_TYPES = {
                     description: '目标航向'
                 }
             ],
-            maxChildren: 1,
+            maxChildren: 0,
             canBeChildless: true
         },
         {
@@ -250,7 +250,7 @@ export const NODE_TYPES = {
                     description: '期望的飞行模式'
                 }
             ],
-            maxChildren: 1,
+            maxChildren: 0,
             canBeChildless: true
         },
         {
@@ -284,7 +284,7 @@ export const NODE_TYPES = {
                     description: '消息对应的rslt参数'
                 }
             ],
-            maxChildren: 1,
+            maxChildren: 0,
             canBeChildless: true
         }
     ],

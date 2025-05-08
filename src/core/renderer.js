@@ -381,16 +381,16 @@ export function initRenderer(elements, state) {
         const childPort = nodeEl.querySelector('.port-child');
         if (childPort) {
             // 基于节点类别的规则
-            if (node.category === 'action' || node.category === 'subtree') {
+            if (node.category === 'action' || node.category === 'subtree' || node.category === 'condition') {
                 // 动作、条件和子树节点不能有子节点
                 childPort.classList.add('disabled');
                 childPort.title = `${node.category.charAt(0).toUpperCase() + node.category.slice(1)}节点不能有子节点`;
-            } else if (node.category === 'decorator'|| node.category === 'condition') {
+            } else if (node.category === 'decorator') {
                 // 装饰器节点只能有一个子节点
                 const childCount = connections.filter(conn => conn.source === node.id).length;
                 if (childCount >= 1) {
                     childPort.classList.add('disabled');
-                    childPort.title = '装饰器和条件节点只能有一个子节点';
+                    childPort.title = '装饰器节点只能有一个子节点';
                 } else {
                     childPort.classList.remove('disabled');
                     childPort.title = '';
