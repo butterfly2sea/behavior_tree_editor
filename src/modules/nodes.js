@@ -357,12 +357,15 @@ export function initNodes(elements, state, renderer) {
             renderer.requestFullRender();
         } else if (nodeType && nodeCategory) {
             // 在世界坐标位置创建新节点
-            createNode(
+            let nodeId = createNode(
                 nodeType,
                 nodeCategory,
                 worldPos.x - config.nodeWidth / 2,
                 worldPos.y - config.nodeHeight / 2
             );
+            if (nodeId) {
+                applyGridSnapping([nodeId])
+            }
         }
     }
 
