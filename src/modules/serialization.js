@@ -202,7 +202,7 @@ export function initSerialization(elements, state) {
      */
     function validateTreeSemantics(nodes, connections) {
         // 验证根节点唯一性
-        const rootValidation = validateSingleRoot(nodes, connections);
+        const rootValidation = validateRoot(nodes, connections);
         if (!rootValidation.isValid) {
             return rootValidation;
         }
@@ -222,7 +222,7 @@ export function initSerialization(elements, state) {
      * @param {Array} connections - 连接数组
      * @returns {Object} - 校验结果，包含isValid和message
      */
-    function validateSingleRoot(nodes, connections) {
+    function validateRoot(nodes, connections) {
         if (nodes.length === 0) {
             return {
                 isValid: false,
@@ -238,11 +238,6 @@ export function initSerialization(elements, state) {
             return {
                 isValid: false,
                 message: "错误: 未找到根节点。行为树必须有且只有一个根节点。可能存在循环引用。"
-            };
-        } else if (rootNodes.length > 1) {
-            return {
-                isValid: false,
-                message: `错误: 找到多个根节点(${rootNodes.length}个)。行为树必须有且只有一个根节点。`
             };
         }
 
@@ -289,9 +284,6 @@ export function initSerialization(elements, state) {
 
         if (rootNodes.length === 0) return null;
 
-        // 选择第一个根节点作为主根
-        const root = rootNodes[0];
-
         // 递归构建层次结构
         function buildNodeHierarchy(nodeId) {
             const node = nodes.find(n => n.id === nodeId);
@@ -315,7 +307,7 @@ export function initSerialization(elements, state) {
             };
         }
 
-        return buildNodeHierarchy(root.id);
+        return rootNodes.map((root) => buildNodeHierarchy(root.id));
     }
 
     /**
@@ -331,12 +323,8 @@ export function initSerialization(elements, state) {
 
         let xml = '<?xml version="1.0"?>\n';
         xml += '<root BTCPP_format="4">\n';
-        xml += '  <BehaviorTree ID="MainTree">\n';
 
-        // 递归添加节点
-        xml += generateNodeXml(treeHierarchy, 4);
-
-        xml += '  </BehaviorTree>\n';
+        xml = treeHierarchy.reduce((total, tree) => total + '  <BehaviorTree ID="'+tree.name+'">\n' + generateNodeXml(tree, 4) + '  </BehaviorTree>\n', xml)
 
         // 添加TreeNodesModel部分，包含自定义节点定义
         if (customNodes.length > 0) {
