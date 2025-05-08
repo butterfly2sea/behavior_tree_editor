@@ -425,6 +425,12 @@ input, select, textarea {
     transform: translateX(-50%);
 }
 
+.port-property-input {
+    position: relative !important;
+    background-color: #e6f3ff !important;
+    border-color: #2196f3 !important;
+}
+
 /* Animations */
 @keyframes shake {
     10%, 90% {
