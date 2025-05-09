@@ -322,9 +322,9 @@ export function initSerialization(elements, state) {
         }
 
         let xml = '<?xml version="1.0"?>\n';
-        xml += '<root BTCPP_format="4">\n';
+        xml += '<root BTCPP_format="4">\n\n';
 
-        xml = treeHierarchy.reduce((total, tree) => total + `  <BehaviorTree ID="${tree.name}">\n${generateNodeXml(tree, 4)}  </BehaviorTree>\n`, xml)
+        xml = treeHierarchy.reduce((total, tree) => total + `  <BehaviorTree ID="${tree.name}">\n${generateNodeXml(tree, 4)}  </BehaviorTree>\n\n`, xml)
 
         // 添加TreeNodesModel部分，包含自定义节点定义
         if (customNodes.length > 0) {
