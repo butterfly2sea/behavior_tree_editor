@@ -21,92 +21,113 @@ export const NODE_TYPES = {
     // 组合节点 - 管理多个子节点的执行流程
     composite: [{
         type: 'Sequence',
-        name: '顺序执行',
+        name: '顺序',
         builtin: true,
-        description: '依次执行所有子节点，当所有子节点返回成功时返回成功，若任一子节点返回失败则立即返回失败。',
+        description: '按顺序执行子节点。如果一个子节点返回FAILURE，则停止并返回FAILURE。如果一个子节点返回RUNNING，下次会从该节点继续执行。所有子节点成功则返回SUCCESS。',
         properties: [],
         maxChildren: null,
         canBeChildless: false
     }, {
         type: 'SequenceWithMemory',
-        name: '带记忆顺序执行',
+        name: '带记忆顺序',
         builtin: true,
-        description: '带记忆的顺序执行，会记住已经执行成功的子节点，当重新执行时从上次执行的位置继续。',
+        description: '按顺序执行子节点，但会记住执行状态。当从RUNNING状态恢复时，会从上次运行的子节点继续，而不是从头开始。',
+        properties: [],
+        maxChildren: null,
+        canBeChildless: false
+    }, {
+        type: 'ReactiveSequence',
+        name: '反应式顺序',
+        builtin: true,
+        description: '类似于并行节点。所有子节点从前往后执行：如果子节点返回RUNNING，则停止其余子节点并返回RUNNING。如果子节点返回SUCCESS，检查下一个子节点。如果子节点返回FAILURE，停止并返回FAILURE。',
         properties: [],
         maxChildren: null,
         canBeChildless: false
     }, {
         type: 'Fallback',
-        name: '选择执行',
+        name: '选择',
         builtin: true,
-        description: '按顺序执行子节点，直到一个子节点返回成功，则整体返回成功；若所有子节点都失败则返回失败。',
+        description: '尝试执行子节点，直到一个成功。如果一个子节点返回SUCCESS，则停止并返回SUCCESS。如果所有子节点返回FAILURE，则返回FAILURE。',
         properties: [],
         maxChildren: null,
         canBeChildless: false
     }, {
         type: 'ReactiveFallback',
-        name: '响应式选择执行',
+        name: '反应式选择',
         builtin: true,
-        description: '响应式选择节点，会在每次tick时重新评估每个条件，从而能够对环境变化做出反应。',
+        description: '类似于并行节点。所有子节点从前往后执行：如果子节点返回RUNNING，继续检查下一个子节点。如果子节点返回FAILURE，继续检查下一个子节点。如果子节点返回SUCCESS，停止并返回SUCCESS。',
         properties: [],
         maxChildren: null,
         canBeChildless: false
     }, {
-        type: 'IfThenElse',
-        name: '条件执行',
-        builtin: true,
-        description: '如果第一个子节点返回成功，则执行第二个子节点；否则执行第三个子节点。',
-        properties: [],
-        maxChildren: 3,
-        canBeChildless: false
-    }, {
-        type: 'WhileDoElse',
-        name: '循环执行',
-        builtin: true,
-        description: '当第一个子节点返回成功时，执行第二个子节点，循环此过程；若第一个子节点失败，则执行第三个子节点。',
-        properties: [],
-        maxChildren: 3,
-        canBeChildless: false
-    }, {
         type: 'Parallel',
-        name: '并行执行',
+        name: '并行',
         builtin: true,
         description: '并行执行所有子节点。当成功阈值数量的子节点成功时返回成功，当失败阈值数量的子节点失败时返回失败。',
         properties: [{
-            name: 'success_threshold', type: 'number', default: 1, description: '返回成功所需的最小成功子节点数'
+            name: 'success_count', type: 'number', default: -1, description: '返回SUCCESS所需的子节点数量，-1表示全部子节点'
         }, {
-            name: 'failure_threshold', type: 'number', default: 1, description: '返回失败所需的最小失败子节点数'
+            name: 'failure_count', type: 'number', default: 1, description: '返回FAILURE所需的子节点数量'
         }],
         maxChildren: null,
         canBeChildless: false
     }, {
         type: 'ParallelAll',
-        name: '全部并行执行',
+        name: '全并行',
         builtin: true,
-        description: '并行执行所有子节点。当所有子节点成功时返回成功，当任一子节点失败时返回失败。',
-        properties: [],
+        description: '并行执行所有子节点，但与Parallel不同，它始终会完成所有子节点的执行。',
+        properties: [{
+            name: 'max_failures', type: 'number', default: 1, description: '如果返回FAILURE的子节点数超过此值，ParallelAll返回FAILURE'
+        }],
         maxChildren: null,
         canBeChildless: false
-    }],
-
-    // 装饰节点 - 修改单个子节点的行为或结果
-    decorator: [{
-        type: 'Delay', name: '延迟', builtin: true, description: '延迟执行子节点指定的时间。', properties: [{
-            name: 'delay_msec', type: 'number', default: 1000, description: '延迟时间(毫秒)'
-        }], maxChildren: 1, canBeChildless: false
     }, {
-        type: 'KeepRunningUntilFailure',
-        name: '持续运行直到失败',
+        type: 'IfThenElse',
+        name: '条件分支',
         builtin: true,
-        description: '持续执行子节点，忽略SUCCESS返回值，只有当子节点返回FAILURE时才会停止并返回FAILURE。',
+        description: '必须有2或3个子节点。第一个子节点是条件，如果返回SUCCESS，则执行第二个子节点；如果返回FAILURE，则执行第三个子节点。',
         properties: [],
-        maxChildren: 1,
+        maxChildren: 3,
         canBeChildless: false
     }, {
+        type: 'WhileDoElse',
+        name: '条件循环',
+        builtin: true,
+        description: '必须有2或3个子节点。第一个子节点是条件判断，每次tick都会执行。如果返回SUCCESS，执行第二个子节点；如果返回FAILURE，执行第三个子节点。',
+        properties: [],
+        maxChildren: 3,
+        canBeChildless: false
+    }, {
+        type: 'Switch',
+        name: '开关选择',
+        builtin: true,
+        description: '根据指定变量的值执行不同的子节点。类似于编程语言中的switch语句。',
+        properties: [{
+            name: 'variable', type: 'string', default: '', description: '要检查的变量'
+        }, {
+            name: 'case_1', type: 'string', default: '', description: '第一个分支的条件值'
+        }, {
+            name: 'case_2', type: 'string', default: '', description: '第二个分支的条件值'
+        }, {
+            name: 'case_3', type: 'string', default: '', description: '第三个分支的条件值'
+        }],
+        maxChildren: null,
+        canBeChildless: false
+    }, {
+        type: 'ManualSelector',
+        name: '手动选择',
+        builtin: true,
+        description: '使用终端用户界面手动选择要执行的子节点。',
+        properties: [{
+            name: 'repeat_last_selection', type: 'boolean', default: false, description: '如果为true，重复执行上次选择的子节点'
+        }],
+        maxChildren: null,
+        canBeChildless: false
+    }], decorator: [{
         type: 'ForceSuccess',
         name: '强制成功',
         builtin: true,
-        description: '执行子节点，无论子节点返回什么状态，都强制返回SUCCESS。',
+        description: '无论子节点返回什么状态，都转换为SUCCESS（除非是RUNNING）。',
         properties: [],
         maxChildren: 1,
         canBeChildless: false
@@ -114,144 +135,87 @@ export const NODE_TYPES = {
         type: 'ForceFailure',
         name: '强制失败',
         builtin: true,
-        description: '执行子节点，无论子节点返回什么状态，都强制返回FAILURE。',
+        description: '无论子节点返回什么状态，都转换为FAILURE（除非是RUNNING）。',
         properties: [],
+        maxChildren: 1,
+        canBeChildless: false
+    }, {
+        type: 'Inverter',
+        name: '取反器',
+        builtin: true,
+        description: '反转子节点的结果：SUCCESS变为FAILURE，FAILURE变为SUCCESS。RUNNING状态保持不变。',
+        properties: [],
+        maxChildren: 1,
+        canBeChildless: false
+    }, {
+        type: 'KeepRunningUntilFailure',
+        name: '运行直到失败',
+        builtin: true,
+        description: '重复执行子节点，直到子节点返回FAILURE。如果子节点返回SUCCESS，重置子节点并继续返回RUNNING。',
+        properties: [],
+        maxChildren: 1,
+        canBeChildless: false
+    }, {
+        type: 'RepeatNode',
+        name: '重复',
+        builtin: true,
+        description: '重复执行子节点指定的次数。如果子节点返回FAILURE，则立即停止并返回FAILURE。',
+        properties: [{
+            name: 'num_cycles', type: 'number', default: 1, description: '重复执行子节点的次数。使用-1表示无限重复。'
+        }],
         maxChildren: 1,
         canBeChildless: false
     }, {
         type: 'RetryUntilSuccessful',
         name: '重试直到成功',
         builtin: true,
-        description: '重试执行子节点直到成功或达到最大尝试次数。',
+        description: '在子节点失败时重试。如果子节点返回SUCCESS，停止重试并返回SUCCESS。',
         properties: [{
-            name: 'num_attempts', type: 'number', default: 1, description: '最大尝试次数'
+            name: 'num_attempts', type: 'number', default: 1, description: '最大重试次数。使用-1表示无限重试。'
         }],
         maxChildren: 1,
         canBeChildless: false
     }, {
-        type: 'Repeat',
-        name: '重复执行',
+        type: 'Timeout',
+        name: '超时',
         builtin: true,
-        description: '重复执行子节点指定的次数，忽略子节点返回的状态。',
+        description: '如果子节点运行时间超过指定时间，则中止子节点并返回FAILURE。',
         properties: [{
-            name: 'num_cycles', type: 'number', default: 1, description: '重复次数'
+            name: 'msec', type: 'number', default: 1000, description: '超时时间（毫秒）'
         }],
         maxChildren: 1,
         canBeChildless: false
     }, {
-        type: 'Script', name: '脚本', builtin: true, description: '执行简单的脚本代码。', properties: [{
+        type: 'Delay',
+        name: '延迟',
+        builtin: true,
+        description: '等待指定时间后再执行子节点，返回子节点的执行结果。',
+        properties: [{
+            name: 'delay_msec', type: 'number', default: 1000, description: '延迟时间（毫秒）'
+        }],
+        maxChildren: 1,
+        canBeChildless: false
+    }, {
+        type: 'RunOnce',
+        name: '仅执行一次',
+        builtin: true,
+        description: '只执行子节点一次。之后可以设置为跳过或返回相同结果。',
+        properties: [{
+            name: 'then_skip', type: 'boolean', default: true, description: '如果为true，第一次执行后跳过；否则返回子节点返回的相同状态'
+        }],
+        maxChildren: 1,
+        canBeChildless: false
+    }, {
+        type: 'Script', name: '脚本条件', builtin: true, description: '使用脚本条件判断是否执行子节点。', properties: [{
             name: 'code', type: 'string', default: '', description: '要执行的脚本代码'
-        }], maxChildren: 0, canBeChildless: true
-    }],
-
-    // 条件节点 - 评估条件并返回成功或失败
-    condition: [{
-        type: 'CheckArriveDst',
-        name: '检查到达目标',
-        builtin: true,
-        description: '检查是否到达目标点，可以包括只判定垂直向是否到达、三向距离是否到达、其它飞机是否到达。',
-        properties: [{
-            name: 'target', type: 'string', default: '', description: '目标控制量'
-        }, {
-            name: 'arvdis', type: 'number', default: 0.2, description: '到点判定距离'
-        }, {
-            name: 'onlyz', type: 'number', default: 1, description: '是否只判定垂直向是否到达'
-        }],
-        maxChildren: 0,
-        canBeChildless: true
-    }, {
-        type: 'CheckStartTask',
-        name: '检查任务开始',
-        builtin: true,
-        description: '检测任务是否开始，可以根据固定时间、延迟、手动或自动触发类型判断。',
-        properties: [{
-            name: 'delay', type: 'number', default: 0, description: '延迟时间(毫秒)'
-        }],
-        maxChildren: 0,
-        canBeChildless: true
-    }, {
-        type: 'CheckWayViaTp',
-        name: '检查航点通过',
-        builtin: true,
-        description: '检查航点通过情况，当飞机与目标航点距离小于设定值时判定为到达。',
-        properties: [{
-            name: 'arriveDis', type: 'number', default: 1, description: '到点距离(米)'
-        }],
-        maxChildren: 0,
-        canBeChildless: true
-    }, {
-        type: 'CheckQuitSearch',
-        name: '检查停止搜索',
-        builtin: true,
-        description: '检测是否停止搜索，依据是否收到目标位置消息进行判定，如收到则认为已经搜索到目标，可以停止搜索。',
-        properties: [],
-        maxChildren: 0,
-        canBeChildless: true
-    }, {
-        type: 'CheckAllArriveDst',
-        name: '检查全部到达目标',
-        builtin: true,
-        description: '检查同分组内全部飞机是否都到达目标位置，主要通过检测航向是否指向航线第一个航点来判断。',
-        properties: [{
-            name: 'delay', type: 'number', default: 5000, description: '全部飞机航向就绪后的等待时间(毫秒)'
-        }, {
-            name: 'dstyaw', type: 'number', default: 0, description: '目标航向(弧度)'
-        }],
-        maxChildren: 0,
-        canBeChildless: true
-    }, {
-        type: 'CheckFlightmode',
-        name: '检查飞行模式',
-        builtin: true,
-        description: '检查当前飞行模式是否为指定模式。',
-        properties: [{
-            name: 'mode',
-            type: 'select',
-            default: '0',
-            description: '期望的飞行模式',
-            options: [{value: '0', label: '未知'}, {value: '1', label: '手动'}, {
-                value: '2',
-                label: '定高'
-            }, {value: '3', label: '定点'}, {value: '4', label: '起飞'}, {value: '5', label: '降落'}, {
-                value: '6',
-                label: '等待'
-            }, {value: '7', label: '任务'}, {value: '8', label: '返航'}, {value: '9', label: 'Offboard'}, {
-                value: '10',
-                label: '增稳'
-            }]
-        }],
-        maxChildren: 0,
-        canBeChildless: true
-    }, {
-        type: 'CommandStatus',
-        name: '命令状态',
-        builtin: true,
-        description: '用于发布指令回复信息，包括命令回复和任务状态回复。',
-        properties: [{
-            name: 'cmd', type: 'number', default: 0, description: '消息对应的cmd参数'
-        }, {
-            name: 'subcmd', type: 'number', default: 0, description: '消息对应的subcmd参数'
-        }, {
-            name: 'status',
-            type: 'select',
-            default: '0',
-            description: '消息对应的status参数',
-            options: [{value: '0', label: '成功'}, {value: '1', label: '失败'}]
-        }, {
-            name: 'rslt', type: 'string', default: '', description: '消息对应的rslt参数'
-        }],
-        maxChildren: 0,
-        canBeChildless: true
-    }],
-
-    // 行为节点 - 执行具体行动的叶节点
-    action: [{
+        }], maxChildren: 1, canBeChildless: true
+    }], action: [{
         type: 'FlightmodeCtrl',
         name: '飞行模式控制',
         builtin: true,
-        description: '飞行模式控制，依据输入参数设置飞行模式。',
+        description: '依据输入参数设置飞行模式。',
         properties: [{
-            name: 'mode', type: 'number', default: 0, description: '期望的飞行模式'
+            name: 'mode', type: 'number', default: 0, description: '期望的飞行模式：1-手动，2-定高，3-定点，4-起飞，5-降落，6-等待，等'
         }, {
             name: 'param7', type: 'number', default: -1, description: '起飞模式时的起飞高度'
         }],
@@ -263,7 +227,7 @@ export const NODE_TYPES = {
         builtin: true,
         description: '上锁、解锁控制，依据期望状态调用服务发送上锁、解锁控制。',
         properties: [{
-            name: 'state', type: 'number', default: 1, description: '期望的锁状态(0-上锁，1-解锁)'
+            name: 'state', type: 'number', default: 0, description: '期望的锁状态：0-上锁，1-解锁'
         }],
         maxChildren: 0,
         canBeChildless: true
@@ -271,11 +235,11 @@ export const NODE_TYPES = {
         type: 'NavwayCtrl',
         name: '航线控制',
         builtin: true,
-        description: '航线控制，对航线节点开始、暂停、继续、停止控制。',
+        description: '编队节点控制，对编队节点开始、暂停、继续、停止控制。',
         properties: [{
             name: 'frame', type: 'number', default: 1, description: '1-节点自己进行offboard控制，0-节点只进行计算不进行实际控制'
         }, {
-            name: 'command', type: 'number', default: 0, description: '控制指令(0-开始，1-暂停，2-继续，3-停止)'
+            name: 'command', type: 'number', default: 0, description: '控制指令：0-开始，1-暂停，2-继续，3-停止'
         }],
         maxChildren: 0,
         canBeChildless: true
@@ -287,7 +251,7 @@ export const NODE_TYPES = {
         properties: [{
             name: 'frame', type: 'number', default: 1, description: '1-节点自己进行offboard控制，0-节点只计算不控制'
         }, {
-            name: 'command', type: 'number', default: 0, description: '控制指令(0-开始，1-暂停，2-继续，3-停止)'
+            name: 'command', type: 'number', default: 0, description: '控制指令：0-开始，1-暂停，2-继续，3-停止'
         }, {
             name: 'current', type: 'number', default: 0, description: '0-跟踪，1-打击'
         }],
@@ -297,9 +261,9 @@ export const NODE_TYPES = {
         type: 'OffboardCtrl',
         name: 'Offboard控制',
         builtin: true,
-        description: '发送offboard控制消息，用于控制无人机的位置、姿态等。',
+        description: '发送offboard控制话题，用于控制无人机的位置、姿态等，话题名默认为inner/control/offboard。',
         properties: [{
-            name: 'ctrl', type: 'string', default: '', description: 'offboard控制量信息'
+            name: 'ctrl', type: 'string', default: 'inner/control/offboard', description: 'offboard控制量信息，由其它节点提供值'
         }, {
             name: 'yaw', type: 'number', default: 0, description: '航向控制'
         }],
@@ -309,7 +273,7 @@ export const NODE_TYPES = {
         type: 'SetLine',
         name: '设置航线',
         builtin: true,
-        description: '设置航线相关信息，包括航点、到点距离、分组、偏移等。',
+        description: '设置航线相关信息，利用对应话题发布航线、到点距离、分组、偏移等消息。',
         properties: [{
             name: 'antiDis', type: 'number', default: 0.6, description: '避撞距离'
         }, {
@@ -333,9 +297,9 @@ export const NODE_TYPES = {
         type: 'SetDstPt',
         name: '设置目标点',
         builtin: true,
-        description: '设置目的点，主要用于详查时飞到详查点。',
+        description: '设置目的点，主要用于详查时，先飞到详查点（此目的点）。',
         properties: [{
-            name: 'step', type: 'number', default: 0, description: '任务步骤'
+            name: 'step', type: 'number', default: 0, description: '任务步骤：0-当前水平位置障碍高度，1-目的水平位置障碍高度，2-目的位置'
         }, {
             name: 'obsHgh', type: 'number', default: -60, description: '避障高度'
         }, {
@@ -365,9 +329,9 @@ export const NODE_TYPES = {
         type: 'SetTraceAttackObj',
         name: '设置跟踪打击目标',
         builtin: true,
-        description: '设置跟踪打击目标。',
+        description: '设置跟踪打击目标，利用对应话题发布目标消息。',
         properties: [{
-            name: 'filter', type: 'boolean', default: false, description: '是否过滤目标'
+            name: 'filter', type: 'boolean', default: false, description: '是否过滤'
         }, {
             name: 'tgtIdParam', type: 'string', default: 'tgtId', description: 'json任务中目标参数名'
         }, {
@@ -376,17 +340,31 @@ export const NODE_TYPES = {
         maxChildren: 0,
         canBeChildless: true
     }, {
-        type: 'TopicTrans', name: '话题转发', builtin: true, description: '发送转发话题。', properties: [{
+        type: 'TopicTrans',
+        name: '话题转发',
+        builtin: true,
+        description: '发送转发话题，话题名通过参数传入。',
+        properties: [{
             name: 'tpc', type: 'string', default: 'formation/task_gen', description: '待发布话题名'
-        }], maxChildren: 0, canBeChildless: true
+        }],
+        maxChildren: 0,
+        canBeChildless: true
     }, {
         type: 'Joystick',
         name: '摇杆控制',
         builtin: true,
-        description: '摇杆控制，处理地面发来的摇杆数据并转换为控制消息。',
+        description: '处理地面发来的摇杆数据并转换为mavros的manual控制消息进行转发。',
         properties: [{
-            name: 'lost', type: 'number', default: 2000, description: '失去摇杆控制时长判定(毫秒)'
+            name: 'lost', type: 'number', default: 2000, description: '失去摇杆控制时长判定（毫秒）'
         }],
+        maxChildren: 0,
+        canBeChildless: true
+    }, {
+        type: 'SetTrigger',
+        name: '设置触发器',
+        builtin: true,
+        description: '设置延迟时间，延迟输出到delay参数，主要用于设置返航的延迟时间。',
+        properties: [],
         maxChildren: 0,
         canBeChildless: true
     }, {
@@ -396,6 +374,8 @@ export const NODE_TYPES = {
         description: '获取本机简单飞控信息，并将位置信息输出给offboard控制量。',
         properties: [{
             name: 'target', type: 'string', default: '', description: 'offboard控制量'
+        }, {
+            name: 'mode', type: 'number', default: '', description: 'offboard模式'
         }, {
             name: 'zoffset', type: 'number', default: 0, description: '垂直向偏移量'
         }, {
@@ -408,20 +388,115 @@ export const NODE_TYPES = {
         name: '获取分组位置',
         builtin: true,
         description: '获取分组中飞机位置信息包括本机及它机。',
+        properties: [],
+        maxChildren: 0,
+        canBeChildless: true
+    }, {
+        type: 'CommandStatus',
+        name: '指令状态',
+        builtin: true,
+        description: '用于使用行为节点发布指令回复信息，包括命令回复和任务状态回复。',
         properties: [{
-            name: 'test', type: 'number', default: 0, description: '测试输出'
+            name: 'cmd', type: 'number', default: 0, description: '消息对应的cmd参数'
+        }, {
+            name: 'subcmd', type: 'number', default: 0, description: '消息对应的subcmd参数'
+        }, {
+            name: 'status', type: 'number', default: 0, description: '消息对应的status参数'
+        }, {
+            name: 'rslt', type: 'string', default: '', description: '消息对应的rslt参数'
         }],
         maxChildren: 0,
         canBeChildless: true
-    }],
-
-    // 子树节点 - 引用其他行为树
-    subtree: [{
-        type: 'SubTree', name: '子树', builtin: true, description: '引用其他行为树作为子树执行。', properties: [{
+    }], condition: [{
+        type: 'CheckArriveDst',
+        name: '检查到达目标',
+        builtin: true,
+        description: '检查是否到达目标点，可以包括只判定垂直向是否到达、三向距离是否到达、其它飞机是否到达。',
+        properties: [{
+            name: 'target', type: 'string', default: '', description: '目标控制量'
+        }, {
+            name: 'arvdis', type: 'number', default: 0.2, description: '到点判定距离'
+        }, {
+            name: 'onlyz', type: 'number', default: 1, description: '是否只判定垂直向是否到达'
+        }],
+        maxChildren: 0,
+        canBeChildless: true
+    }, {
+        type: 'CheckStartTask',
+        name: '检查任务开始',
+        builtin: true,
+        description: '检测任务是否开始，可以根据不同触发类型判断。',
+        properties: [{
+            name: 'delay', type: 'number', default: 0, description: '延迟时间(毫秒)'
+        }],
+        maxChildren: 0,
+        canBeChildless: true
+    }, {
+        type: 'CheckWayViaTp',
+        name: '检查航点通过',
+        builtin: true,
+        description: '检查航点经由航向点是否到达。',
+        properties: [{
+            name: 'arriveDis', type: 'number', default: 1, description: '到点距离(米)'
+        }],
+        maxChildren: 0,
+        canBeChildless: true
+    }, {
+        type: 'CheckQuitSearch',
+        name: '检查停止搜索',
+        builtin: true,
+        description: '检测是否停止搜索，依据是否收到目标位置消息进行判定。',
+        properties: [],
+        maxChildren: 0,
+        canBeChildless: true
+    }, {
+        type: 'CheckAllArriveDst',
+        name: '检查全部到达目标',
+        builtin: true,
+        description: '检查是否全部到达目标，现检测同分组内全部飞机朝向都指向航线的第一个航点。',
+        properties: [{
+            name: 'delay', type: 'number', default: 5000, description: '全部飞机航向就绪后的等待时间'
+        }, {
+            name: 'dstyaw', type: 'number', default: 0, description: '目标航向'
+        }],
+        maxChildren: 0,
+        canBeChildless: true
+    }, {
+        type: 'CheckQuitSearch',
+        name: '检查退出搜索',
+        builtin: true,
+        description: '检测是否停止搜索，简单依据是否收到目标位置消息进行判定，如收到则认为已经搜索到目标，可以停止搜索。',
+        properties: [],
+        maxChildren: 0,
+        canBeChildless: true
+    }, {
+        type: 'CommandStatus',
+        name: '命令状态',
+        builtin: true,
+        description: '用于使用行为节点发布指令回复信息，包括命令回复和任务状态回复。',
+        properties: [{
+            name: 'cmd', type: 'number', default: 0, description: '消息对应的cmd参数'
+        }, {
+            name: 'subcmd', type: 'number', default: 0, description: '消息对应的subcmd参数'
+        }, {
+            name: 'status', type: 'number', default: 0, description: '消息对应的status参数'
+        }, {
+            name: 'rslt', type: 'string', default: '', description: '消息对应的rslt参数'
+        }],
+        maxChildren: 0,
+        canBeChildless: true
+    }], subtree: [{
+        type: 'SubTree',
+        name: '子树',
+        builtin: true,
+        description: '包装整个子树，创建一个单独的黑板。如果要通过端口传输数据，需要显式重新映射端口。',
+        properties: [{
             name: 'ID', type: 'string', default: '', description: '子树的ID'
         }, {
-            name: '_autoremap', type: 'boolean', default: false, description: '是否自动重映射参数'
-        }], maxChildren: 0, canBeChildless: true
+            name: '_autoremap', type: 'boolean', default: false, description: '是否自动重新映射端口'
+        }],
+        maxChildren: 0,
+        canBeChildless: true
     }]
 };
 
