@@ -379,6 +379,7 @@ export function initPropertiesPanel(elements, state) {
         const input = createElement('input', {
             type: inputType,
             className: 'property-value',
+            readonly:readonly,
             value: value,
             onchange: onChange ? (e) => {
                 onChange(e.target.value);
