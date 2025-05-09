@@ -453,14 +453,6 @@ export const NODE_TYPES = {
         }],
         maxChildren: 0,
         canBeChildless: true
-    }, {
-        type: 'CheckQuitSearch',
-        name: '检查退出搜索',
-        builtin: true,
-        description: '检测是否停止搜索，简单依据是否收到目标位置消息进行判定，如收到则认为已经搜索到目标，可以停止搜索。',
-        properties: [],
-        maxChildren: 0,
-        canBeChildless: true
     }], subtree: [{
         type: 'SubTree',
         name: '子树',
