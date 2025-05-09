@@ -26,8 +26,8 @@ export const config = {
     // Layout
     layout: {
         defaultType: 'hierarchical',
-        nodeSpacingX: 200,
-        nodeSpacingY: 100,
+        nodeSpacingX: 20,
+        nodeSpacingY: 20,
         animationDuration: 500
     },
 
