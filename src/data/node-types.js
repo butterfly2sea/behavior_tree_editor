@@ -360,14 +360,6 @@ export const NODE_TYPES = {
         maxChildren: 0,
         canBeChildless: true
     }, {
-        type: 'SetTrigger',
-        name: '设置触发器',
-        builtin: true,
-        description: '设置延迟时间，延迟输出到delay参数，主要用于设置返航的延迟时间。',
-        properties: [],
-        maxChildren: 0,
-        canBeChildless: true
-    }, {
         type: 'GetLocation',
         name: '获取位置',
         builtin: true,
@@ -467,22 +459,6 @@ export const NODE_TYPES = {
         builtin: true,
         description: '检测是否停止搜索，简单依据是否收到目标位置消息进行判定，如收到则认为已经搜索到目标，可以停止搜索。',
         properties: [],
-        maxChildren: 0,
-        canBeChildless: true
-    }, {
-        type: 'CommandStatus',
-        name: '命令状态',
-        builtin: true,
-        description: '用于使用行为节点发布指令回复信息，包括命令回复和任务状态回复。',
-        properties: [{
-            name: 'cmd', type: 'number', default: 0, description: '消息对应的cmd参数'
-        }, {
-            name: 'subcmd', type: 'number', default: 0, description: '消息对应的subcmd参数'
-        }, {
-            name: 'status', type: 'number', default: 0, description: '消息对应的status参数'
-        }, {
-            name: 'rslt', type: 'string', default: '', description: '消息对应的rslt参数'
-        }],
         maxChildren: 0,
         canBeChildless: true
     }], subtree: [{
