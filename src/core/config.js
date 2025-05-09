@@ -28,6 +28,8 @@ export const config = {
         defaultType: 'hierarchical',
         nodeSpacingX: 20,
         nodeSpacingY: 20,
+        treeSpacingX: 40,
+        treeSpacingY: 40,
         animationDuration: 500
     },
 

@@ -86,19 +86,159 @@ export function initLayout(elements, state, renderer) {
      * Apply hierarchical (tree) layout
      */
     function applyHierarchicalLayout() {
-        // Find root nodes
+        // 找到所有根节点
         const rootNodes = findRootNodes();
         if (rootNodes.length === 0) return [];
 
-        // Use first root if multiple roots exist
-        const rootNode = rootNodes[0];
+        // 如果只有一棵树，使用原始布局
+        if (rootNodes.length === 1) {
+            const treeHierarchy = buildTreeHierarchy(rootNodes[0]);
+            if (treeHierarchy) {
+                return calculateHierarchicalPositions(treeHierarchy);
+            }
+            return [];
+        }
 
-        // Build tree hierarchy
-        const treeHierarchy = buildTreeHierarchy(rootNode);
-        if (!treeHierarchy) return [];
+        // 为多棵树计算布局
+        return calculateMultiTreeLayout(rootNodes);
+    }
 
-        // Calculate positions
-        return calculateHierarchicalPositions(treeHierarchy);
+    /**
+     * 计算多棵树的智能布局
+     * @param {Array} rootNodes - 所有根节点
+     * @returns {Array} - 所有节点的位置数组
+     */
+    function calculateMultiTreeLayout(rootNodes) {
+        const options = stateManager.getLayout().options;
+        const treeSpacingX = config.layout.treeSpacingX || 300;
+        const treeSpacingY = config.layout.treeSpacingY || 200;
+
+        // 先计算每棵树的独立布局和尺寸
+        const treeLayouts = [];
+
+        for (const rootNode of rootNodes) {
+            const treeHierarchy = buildTreeHierarchy(rootNode);
+            if (!treeHierarchy) continue;
+
+            // 计算这棵树的布局（相对于原点）
+            const positions = calculateHierarchicalPositions(treeHierarchy);
+
+            // 计算树的边界
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+            positions.forEach(pos => {
+                minX = Math.min(minX, pos.x);
+                minY = Math.min(minY, pos.y);
+                maxX = Math.max(maxX, pos.x + config.nodeWidth);
+                maxY = Math.max(maxY, pos.y + config.nodeHeight);
+            });
+
+            // 计算这棵树的尺寸
+            const width = maxX - minX;
+            const height = maxY - minY;
+
+            // 存储这棵树的布局信息
+            treeLayouts.push({
+                rootId: rootNode.id,
+                positions,
+                bounds: {minX, minY, maxX, maxY},
+                width,
+                height
+            });
+        }
+
+        // 获取视口尺寸
+        const viewport = stateManager.getViewport();
+        const canvas = document.getElementById('canvas');
+        const canvasWidth = canvas.clientWidth / viewport.scale;
+        const canvasHeight = canvas.clientHeight / viewport.scale;
+
+        // 计算合适的行列数
+        const numTrees = treeLayouts.length;
+
+        // 根据屏幕宽高比确定列数
+        const aspectRatio = canvasWidth / canvasHeight;
+        const numColumns = Math.min(
+            numTrees,
+            Math.max(1, Math.round(Math.sqrt(numTrees * aspectRatio)))
+        );
+        const numRows = Math.ceil(numTrees / numColumns);
+
+        // 使用树布局位置，创建一个二维网格
+        const grid = [];
+        for (let i = 0; i < numRows; i++) {
+            grid.push(new Array(numColumns).fill(null));
+        }
+
+        // 将树分配到网格中
+        treeLayouts.forEach((tree, index) => {
+            const row = Math.floor(index / numColumns);
+            const col = index % numColumns;
+            grid[row][col] = tree;
+        });
+
+        // 计算每列的最大宽度和每行的最大高度
+        const columnWidths = new Array(numColumns).fill(0);
+        const rowHeights = new Array(numRows).fill(0);
+
+        for (let row = 0; row < numRows; row++) {
+            for (let col = 0; col < numColumns; col++) {
+                const tree = grid[row][col];
+                if (tree) {
+                    columnWidths[col] = Math.max(columnWidths[col], tree.width);
+                    rowHeights[row] = Math.max(rowHeights[row], tree.height);
+                }
+            }
+        }
+
+        // 计算每行和每列的累积位置（考虑间距）
+        const columnPositions = [0];
+        for (let i = 1; i < numColumns; i++) {
+            columnPositions[i] = columnPositions[i - 1] + columnWidths[i - 1] + treeSpacingX;
+        }
+
+        const rowPositions = [0];
+        for (let i = 1; i < numRows; i++) {
+            rowPositions[i] = rowPositions[i - 1] + rowHeights[i - 1] + treeSpacingY;
+        }
+
+        // 计算整个网格的尺寸
+        const gridWidth = columnPositions[numColumns - 1] + columnWidths[numColumns - 1];
+        const gridHeight = rowPositions[numRows - 1] + rowHeights[numRows - 1];
+
+        // 计算网格起始坐标（使网格居中）
+        const startX = (canvasWidth - gridWidth) / 2;
+        const startY = (canvasHeight - gridHeight) / 2;
+
+        // 为每棵树应用网格布局偏移
+        let allPositions = [];
+
+        for (let row = 0; row < numRows; row++) {
+            for (let col = 0; col < numColumns; col++) {
+                const tree = grid[row][col];
+                if (!tree) continue;
+
+                // 计算树在单元格中的位置（居中）
+                const cellOffsetX = (columnWidths[col] - tree.width) / 2;
+                const cellOffsetY = (rowHeights[row] - tree.height) / 2;
+
+                // 计算最终偏移
+                const offsetX = startX + columnPositions[col] + cellOffsetX - tree.bounds.minX;
+                const offsetY = startY + rowPositions[row] + cellOffsetY - tree.bounds.minY;
+
+                // 应用偏移到树的所有节点
+                const offsetPositions = tree.positions.map(pos => ({
+                    ...pos,
+                    x: pos.x + offsetX,
+                    y: pos.y + offsetY
+                }));
+
+                // 添加到所有位置
+                allPositions = [...allPositions, ...offsetPositions];
+            }
+        }
+
+        return allPositions;
     }
 
     /**
