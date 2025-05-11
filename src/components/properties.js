@@ -198,6 +198,97 @@ export function initPropertiesPanel(elements, state) {
 
                     propsSection.appendChild(helpText);
                 }
+                if (node.type === 'SubTree' && prop.name === 'port_mappings') {
+                    // 创建端口映射管理UI
+                    const mappingsSection = createElement('div', {
+                        className: 'port-mappings-section',
+                        style: {marginTop: '10px'}
+                    });
+
+                    // 显示现有映射
+                    const mappings = node.properties.port_mappings || {};
+
+                    // 映射列表容器
+                    const mappingsList = createElement('div', {
+                        className: 'mappings-list',
+                        style: {marginBottom: '10px'}
+                    });
+
+                    // 渲染每个映射
+                    Object.entries(mappings).forEach(([internal, external]) => {
+                        const mappingRow = createElement('div', {
+                            className: 'mapping-row',
+                            style: {display: 'flex', alignItems: 'center', marginBottom: '5px', gap: '5px'}
+                        });
+
+                        // 内部端口输入
+                        const internalInput = createElement('input', {
+                            type: 'text',
+                            value: internal,
+                            placeholder: '内部端口',
+                            style: {width: '35%'},
+                            onchange: (e) => updateMappingKey(nodeId, internal, e.target.value, external)
+                        });
+
+                        // 箭头符号
+                        const arrow = createElement('span', {}, '←');
+
+                        // 外部端口/值输入
+                        const externalInput = createElement('input', {
+                            type: 'text',
+                            value: external,
+                            placeholder: '外部端口或值',
+                            style: {width: '45%'},
+                            onchange: (e) => updateMappingValue(nodeId, internal, e.target.value)
+                        });
+
+                        // 删除按钮
+                        const deleteBtn = createElement('button', {
+                            style: {
+                                padding: '2px 5px',
+                                background: '#f44336',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '3px',
+                                cursor: 'pointer'
+                            },
+                            onclick: () => removeMapping(nodeId, internal)
+                        }, '×');
+
+                        mappingRow.appendChild(internalInput);
+                        mappingRow.appendChild(arrow);
+                        mappingRow.appendChild(externalInput);
+                        mappingRow.appendChild(deleteBtn);
+                        mappingsList.appendChild(mappingRow);
+                    });
+
+                    // 添加新映射按钮
+                    const addMappingBtn = createElement('button', {
+                        style: {
+                            padding: '5px 10px',
+                            background: '#4CAF50',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '3px',
+                            cursor: 'pointer'
+                        },
+                        onclick: () => addMapping(nodeId)
+                    }, '+ 添加端口映射');
+
+                    // 帮助文字
+                    const helpText = createElement('div', {
+                        style: {
+                            fontSize: '11px',
+                            color: '#666',
+                            marginTop: '5px'
+                        }
+                    }, '提示：外部值可以是端口名（用{}包裹）或直接值');
+
+                    mappingsSection.appendChild(mappingsList);
+                    mappingsSection.appendChild(addMappingBtn);
+                    mappingsSection.appendChild(helpText);
+                    propsSection.appendChild(mappingsSection);
+                }
             });
 
             propertiesContent.appendChild(propsSection);
@@ -257,6 +348,57 @@ export function initPropertiesPanel(elements, state) {
         }, '删除节点');
 
         propertiesContent.appendChild(deleteButton);
+    }
+
+    // 辅助函数
+    function updateMappingKey(nodeId, oldKey, newKey, value) {
+        const node = stateManager.getNodes().find(n => n.id === nodeId);
+        if (!node) return;
+
+        const mappings = {...(node.properties.port_mappings || {})};
+        delete mappings[oldKey];
+        mappings[newKey] = value;
+
+        updateProperty(nodeId, 'port_mappings', mappings);
+    }
+
+    function updateMappingValue(nodeId, key, value) {
+        const node = stateManager.getNodes().find(n => n.id === nodeId);
+        if (!node) return;
+
+        const mappings = {...(node.properties.port_mappings || {})};
+        mappings[key] = value;
+
+        updateProperty(nodeId, 'port_mappings', mappings);
+    }
+
+    function addMapping(nodeId) {
+        const node = stateManager.getNodes().find(n => n.id === nodeId);
+        if (!node) return;
+
+        const mappings = {...(node.properties.port_mappings || {})};
+        let count = 1;
+        let newKey = `port${count}`;
+
+        // 找到不冲突的键名
+        while (mappings[newKey]) {
+            count++;
+            newKey = `port${count}`;
+        }
+
+        mappings[newKey] = '';
+
+        updateProperty(nodeId, 'port_mappings', mappings);
+    }
+
+    function removeMapping(nodeId, key) {
+        const node = stateManager.getNodes().find(n => n.id === nodeId);
+        if (!node) return;
+
+        const mappings = {...(node.properties.port_mappings || {})};
+        delete mappings[key];
+
+        updateProperty(nodeId, 'port_mappings', mappings);
     }
 
     /**

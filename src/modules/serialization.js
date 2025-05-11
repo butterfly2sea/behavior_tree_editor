@@ -371,12 +371,31 @@ export function initSerialization(elements, state) {
 
         // 生成参数字符串
         let params = '';
+
+        // 处理普通属性
         for (const [key, value] of Object.entries(node.properties)) {
-            if (value) {
+            if (key === 'port_mappings' && typeof value === 'object') {
+                // 端口映射单独处理
+                continue;
+            }
+            if (value !== undefined && value !== null && value !== '') {
                 params += ` ${key}="${escapeXml(value)}"`;
             }
         }
 
+        // 处理子树端口映射
+        if (node.type === 'SubTree' && node.properties.port_mappings) {
+            const mappings = node.properties.port_mappings;
+
+            for (const [internal, external] of Object.entries(mappings)) {
+                if (external !== undefined && external !== null && external !== '') {
+                    // 外部值已经包含了格式（如{port}或直接值）
+                    params += ` ${internal}="${escapeXml(external)}"`;
+                }
+            }
+        }
+
+        // 生成XML
         if (!hasChildren) {
             // 叶子节点
             return `${spaces}<${escapeXml(node.type)} name="${escapeXml(node.name)}"${params}/>\n`;
@@ -456,6 +475,13 @@ export function initSerialization(elements, state) {
                 if (typeof node.x !== 'number') return false;
                 if (typeof node.y !== 'number') return false;
                 if (typeof node.properties !== 'object') return false;
+                // 验证子树节点的端口映射
+                if (node.type === 'SubTree' && node.properties.port_mappings) {
+                    if (typeof node.properties.port_mappings !== 'object' ||
+                        Array.isArray(node.properties.port_mappings)) {
+                        return false;
+                    }
+                }
             }
 
             for (const conn of data.connections) {

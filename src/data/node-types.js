@@ -462,6 +462,9 @@ export const NODE_TYPES = {
             name: 'ID', type: 'string', default: '', description: '子树的ID'
         }, {
             name: '_autoremap', type: 'boolean', default: false, description: '是否自动重新映射端口'
+        }, {
+            name: 'port_mappings', type: 'object', default: {}, // 改为对象，键为内部端口，值为外部端口或值
+            description: '端口映射，内部端口名到外部端口或值的映射'
         }],
         maxChildren: 0,
         canBeChildless: true

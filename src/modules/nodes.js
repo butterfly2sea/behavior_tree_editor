@@ -37,7 +37,11 @@ export function initNodes(elements, state, renderer) {
             // Add default properties if defined
             if (nodeTypeDef && nodeTypeDef.properties) {
                 nodeTypeDef.properties.forEach(prop => {
-                    node.properties[prop.name] = prop.default || '';
+                    if (prop.name === 'port_mappings' && prop.type === 'object') {
+                        node.properties[prop.name] = prop.default || {};
+                    } else {
+                        node.properties[prop.name] = prop.default || '';
+                    }
                 });
             }
 
