@@ -44,6 +44,7 @@ function htmlTemplate({attributes, files, meta, publicPath, title}) {
     <div class="toolbar-group">
         <button id="toggle-grid-btn" title="Toggle Grid"><i class="icon-grid"></i> Grid</button>
         <button id="toggle-snap-btn" title="Toggle Snap to Grid"><i class="icon-snap"></i> Snap</button>
+        <button id="toggle-minimap-btn" title="Toggle Minimap"><i class="icon-minimap"></i> Minimap</button>
     </div>
 
     <div class="toolbar-group">

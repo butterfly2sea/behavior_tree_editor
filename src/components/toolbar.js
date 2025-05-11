@@ -25,7 +25,12 @@ export function initToolbar(elements, state) {
             'save-btn': () => eventBus.emit(EVENTS.TOOLBAR_ACTION, {action: 'save'}),
             'load-btn': () => eventBus.emit(EVENTS.TOOLBAR_ACTION, {action: 'load'}),
             'clear-btn': () => eventBus.emit(EVENTS.TOOLBAR_ACTION, {action: 'clear'}),
-            'export-xml-btn': () => eventBus.emit(EVENTS.TOOLBAR_ACTION, {action: 'export-xml'})
+            'export-xml-btn': () => eventBus.emit(EVENTS.TOOLBAR_ACTION, {action: 'export-xml'}),
+            'toggle-minimap-btn': () => {
+                if (window.editor && window.editor.modules && window.editor.modules.minimap) {
+                    window.editor.modules.minimap.toggleMinimap();
+                }
+            }
         };
 
         // Add event listeners to all buttons
@@ -53,6 +58,12 @@ export function initToolbar(elements, state) {
             toggleSnapBtn.classList.toggle('active', stateManager.getGrid().snap);
         }
 
+        // Minimap button state
+        const toggleMinimapBtn = document.getElementById('toggle-minimap-btn');
+        if (toggleMinimapBtn) {
+            toggleMinimapBtn.classList.toggle('active', stateManager.getMinimap().isVisible);
+        }
+
         // Layout type selector
         const layoutTypeSelect = document.getElementById('layout-type');
         if (layoutTypeSelect) {
@@ -68,6 +79,7 @@ export function initToolbar(elements, state) {
         eventBus.on(EVENTS.GRID_CHANGED, updateButtonStates);
         eventBus.on(EVENTS.LAYOUT_CHANGED, updateButtonStates);
         eventBus.on(EVENTS.STATE_LOADED, updateButtonStates);
+        eventBus.on(EVENTS.MINIMAP_CHANGED, updateButtonStates);
     }
 
     function updateAlignButtonsState() {

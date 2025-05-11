@@ -28,6 +28,10 @@ export function initMinimap(elements, state, renderer) {
         if (minimapState.isVisible) {
             renderMinimap();
         }
+
+        eventBus.emit(EVENTS.MINIMAP_CHANGED, {
+            isVisible: minimapState.isVisible
+        });
     }
 
     /**

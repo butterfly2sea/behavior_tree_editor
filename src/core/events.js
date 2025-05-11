@@ -25,6 +25,9 @@ export const EVENTS = {
     GRID_CHANGED: 'grid:changed',
     LAYOUT_CHANGED: 'layout:changed',
 
+    // Minimap events
+    MINIMAP_CHANGED: 'minimap:changed',
+
     // Monitor events
     MONITOR_CHANGED: 'monitor:changed', // type: started, stopped, updated
 
