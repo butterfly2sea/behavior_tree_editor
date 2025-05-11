@@ -171,10 +171,10 @@ export function initState() {
             });
 
             if (updatedIds.length > 0) {
-                eventBus.emit(EVENTS.NODE_CHANGED, {
-                    type: 'batch-updated',
-                    nodeIds: updatedIds
-                });
+                // eventBus.emit(EVENTS.NODE_CHANGED, {
+                //     type: 'batch-updated',
+                //     nodeIds: updatedIds
+                // });
             }
 
             return updatedIds.length > 0;
